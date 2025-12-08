@@ -1,0 +1,47 @@
+[
+  {
+    "id": 1,
+    "wifiModelId": 1,
+    "userId": 1,
+    "userName": "张三",
+    "rating": 5,
+    "comment": "信号非常稳定，在山区也能正常使用，续航时间很长，非常满意！",
+    "date": "2024-01-15"
+  },
+  {
+    "id": 2,
+    "wifiModelId": 1,
+    "userId": 2,
+    "userName": "李四",
+    "rating": 4,
+    "comment": "速度很快，连接稳定，就是价格稍微有点贵。",
+    "date": "2024-01-10"
+  },
+  {
+    "id": 3,
+    "wifiModelId": 2,
+    "userId": 3,
+    "userName": "王五",
+    "rating": 4,
+    "comment": "性价比很高，信号不错，适合日常使用。",
+    "date": "2024-01-05"
+  },
+  {
+    "id": 4,
+    "wifiModelId": 3,
+    "userId": 4,
+    "userName": "赵六",
+    "rating": 3,
+    "comment": "信号一般，在信号弱的地方会断连，价格便宜但体验一般。",
+    "date": "2024-01-01"
+  },
+  {
+    "id": 5,
+    "wifiModelId": 4,
+    "userId": 5,
+    "userName": "孙七",
+    "rating": 5,
+    "comment": "信号超级稳定，速度也很快，续航时间长，强烈推荐！",
+    "date": "2023-12-28"
+  }
+]

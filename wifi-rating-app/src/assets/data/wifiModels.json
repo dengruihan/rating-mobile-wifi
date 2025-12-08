@@ -1,0 +1,87 @@
+[
+  {
+    "id": 1,
+    "name": "华为随行WiFi 3",
+    "brand": "华为",
+    "model": "E5576-855",
+    "signalStrength": 4.5,
+    "speed": 4.8,
+    "price": 299,
+    "dataPlans": [
+      { "name": "月包10GB", "price": 39 },
+      { "name": "月包20GB", "price": 69 },
+      { "name": "月包50GB", "price": 129 }
+    ],
+    "description": "华为随行WiFi 3支持4G网络，最多可连接16台设备，续航时间长达8小时，适合旅行和办公使用。",
+    "rating": 4.5,
+    "reviewCount": 125
+  },
+  {
+    "id": 2,
+    "name": "小米移动WiFi",
+    "brand": "小米",
+    "model": "R1CL",
+    "signalStrength": 4.2,
+    "speed": 4.5,
+    "price": 199,
+    "dataPlans": [
+      { "name": "月包5GB", "price": 29 },
+      { "name": "月包15GB", "price": 59 },
+      { "name": "月包30GB", "price": 99 }
+    ],
+    "description": "小米移动WiFi采用简洁设计，支持4G网络，最多可连接10台设备，续航时间6小时，性价比高。",
+    "rating": 4.2,
+    "reviewCount": 89
+  },
+  {
+    "id": 3,
+    "name": "腾讯随身WiFi",
+    "brand": "腾讯",
+    "model": "Tencent WiFi",
+    "signalStrength": 3.8,
+    "speed": 4.0,
+    "price": 129,
+    "dataPlans": [
+      { "name": "月包3GB", "price": 19 },
+      { "name": "月包10GB", "price": 49 },
+      { "name": "月包20GB", "price": 79 }
+    ],
+    "description": "腾讯随身WiFi体积小巧，便于携带，支持4G网络，最多可连接8台设备，适合日常使用。",
+    "rating": 3.9,
+    "reviewCount": 56
+  },
+  {
+    "id": 4,
+    "name": "中兴MF920U",
+    "brand": "中兴",
+    "model": "MF920U",
+    "signalStrength": 4.6,
+    "speed": 4.7,
+    "price": 349,
+    "dataPlans": [
+      { "name": "月包15GB", "price": 49 },
+      { "name": "月包30GB", "price": 89 },
+      { "name": "月包60GB", "price": 149 }
+    ],
+    "description": "中兴MF920U支持4G+网络，最多可连接15台设备，续航时间长达10小时，信号稳定。",
+    "rating": 4.6,
+    "reviewCount": 78
+  },
+  {
+    "id": 5,
+    "name": "TP-Link M7350",
+    "brand": "TP-Link",
+    "model": "M7350",
+    "signalStrength": 4.3,
+    "speed": 4.4,
+    "price": 249,
+    "dataPlans": [
+      { "name": "月包8GB", "price": 35 },
+      { "name": "月包20GB", "price": 65 },
+      { "name": "月包40GB", "price": 115 }
+    ],
+    "description": "TP-Link M7350支持4G网络，最多可连接10台设备，续航时间8小时，操作简单。",
+    "rating": 4.3,
+    "reviewCount": 67
+  }
+]
