@@ -83,6 +83,13 @@ body {
   padding: 2rem 0;
 }
 
+/* 主内容区在小屏幕下的响应式优化 */
+@media (max-width: 768px) {
+  .main-content {
+    padding: 1rem 0;
+  }
+}
+
 /* 确保内容区域有适当的边距 */
 .container {
   max-width: 1200px;
@@ -95,20 +102,41 @@ body {
   border: 1px solid rgba(0, 0, 0, 0.02);
 }
 
+/* 内容区域在小屏幕下的响应式优化 */
+@media (max-width: 768px) {
+  .container {
+    padding: 1.5rem;
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+  }
+}
+
 /* 导航栏样式优化 */
 .navbar {
   background: var(--primary-color);
-  padding: 1rem 0;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 0.3rem 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   position: sticky;
   top: 0;
   z-index: 1000;
   animation: fadeIn 0.6s ease;
+  border-radius: 0 0 20px 20px;
+}
+
+/* 导航栏内部容器样式 */
+.navbar .container {
+  background-color: transparent;
+  padding: 0 1rem;
+  margin-top: 0;
+  margin-bottom: 0;
+  box-shadow: none;
+  border: none;
+  border-radius: 0;
 }
 
 .navbar-brand {
   color: rgba(84, 121, 178, 1) !important;
-  font-size: 1.6rem;
+  font-size: 1.3rem;
   font-weight: 700;
   transition: all 0.3s ease;
   letter-spacing: -0.5px;
@@ -123,7 +151,8 @@ body {
 .navbar-nav .nav-link {
   color: rgba(84, 121, 178, 1) !important;
   font-weight: 600;
-  margin: 0 0.5rem;
+  margin: 0 0.3rem;
+  padding: 0.3rem 0.6rem !important;
   transition: all 0.3s ease;
   position: relative;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
@@ -136,7 +165,7 @@ body {
 }
 
 .navbar-toggler {
-  border-color: rgba(253, 0, 0, 1);
+  border-color: transparent;
   transition: all 0.3s ease;
 }
 
@@ -149,6 +178,54 @@ body {
   background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%28255, 255, 255, 0.8%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
 }
 
+/* 移动端导航栏样式优化 */
+@media (max-width: 768px) {
+  .navbar {
+    padding: 0.2rem 0;
+  }
+  
+  .navbar-brand {
+    font-size: 1.1rem;
+  }
+  
+  .navbar-nav {
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .navbar-nav .nav-link {
+    padding: 0.5rem 0 !important;
+    font-size: 0.95rem;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+  }
+  
+  .navbar-nav .nav-link:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    transform: translateY(0);
+  }
+  
+  .navbar-collapse {
+    text-align: center;
+    padding: 0.5rem;
+  }
+  
+  /* 优化移动端导航展开效果 */
+  .navbar-collapse {
+    transition: all 0.3s ease-in-out;
+  }
+  
+  /* 增加移动端导航链接的点击区域 */
+  .nav-item {
+    margin: 0.2rem 0;
+  }
+  
+  /* 确保导航菜单在小屏幕下完全展开 */
+  .navbar-expand-lg .navbar-collapse {
+    flex-direction: column;
+  }
+}
+
 /* 页脚样式优化 */
 .footer {
   background: var(--primary-color);
@@ -157,11 +234,24 @@ body {
   margin-top: 2rem;
   box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05);
   animation: fadeIn 0.8s ease 0.2s both;
+  border-radius: 20px 20px 0 0;
 }
 
 .footer .text-muted {
   color: rgba(84, 121, 178, 1) !important;
   font-size: 0.9rem;
+}
+
+/* 页脚在小屏幕下的响应式优化 */
+@media (max-width: 768px) {
+  .footer {
+    padding: 1.5rem 0;
+    margin-top: 1rem;
+  }
+  
+  .footer .text-muted {
+    font-size: 0.85rem;
+  }
 }
 
 /* 淡入动画 */
