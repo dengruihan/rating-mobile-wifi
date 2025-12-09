@@ -33,23 +33,46 @@
     
     <div class="row">
       <div class="col-md-4" v-for="wifi in filteredAndSortedWifis" :key="wifi.id">
-        <div class="card mb-4">
+        <div class="card mb-4 card-hover">
           <div class="card-body">
-            <h5 class="card-title">{{ wifi.name }}</h5>
-            <h6 class="card-subtitle mb-2 text-muted">{{ wifi.brand }} - {{ wifi.model }}</h6>
-            <div class="info">
-              <p><strong>信号强度：</strong>{{ wifi.signalStrength }}/5</p>
-              <p><strong>速度：</strong>{{ wifi.speed }}/5</p>
-              <p><strong>价格：</strong>¥{{ wifi.price }}</p>
-              <p><strong>评价数：</strong>{{ wifi.reviewCount }}</p>
+            <div class="d-flex justify-content-between align-items-start mb-2">
+              <h5 class="card-title mb-0">{{ wifi.name }}</h5>
+              <span class="badge bg-primary rounded-pill">
+                {{ wifi.brand }}
+              </span>
             </div>
-            <div class="rating">
+            <h6 class="card-subtitle mb-3 text-muted">{{ wifi.model }}</h6>
+            <div class="info mb-4">
+              <div class="row g-2">
+                <div class="col-6">
+                  <div class="progress" style="height: 6px; margin-bottom: 5px;">
+                    <div class="progress-bar bg-success" role="progressbar" :style="{ width: (wifi.signalStrength * 20) + '%' }"></div>
+                  </div>
+                  <p class="mb-1 small"><strong>信号强度：</strong>{{ wifi.signalStrength }}/5</p>
+                </div>
+                <div class="col-6">
+                  <div class="progress" style="height: 6px; margin-bottom: 5px;">
+                    <div class="progress-bar bg-info" role="progressbar" :style="{ width: (wifi.speed * 20) + '%' }"></div>
+                  </div>
+                  <p class="mb-1 small"><strong>速度：</strong>{{ wifi.speed }}/5</p>
+                </div>
+              </div>
+              <div class="row g-2 mt-2">
+                <div class="col-6">
+                  <p class="mb-1 small"><strong>价格：</strong><span class="text-primary fw-bold">¥{{ wifi.price }}</span></p>
+                </div>
+                <div class="col-6">
+                  <p class="mb-1 small"><strong>评价数：</strong>{{ wifi.reviewCount }}</p>
+                </div>
+              </div>
+            </div>
+            <div class="rating mb-3">
               <span class="star" v-for="n in 5" :key="n">
                 {{ n <= wifi.rating ? '★' : '☆' }}
               </span>
               <span class="rating-value">{{ wifi.rating }}</span>
             </div>
-            <router-link :to="'/wifi-model/' + wifi.id" class="btn btn-primary">查看详情</router-link>
+            <router-link :to="'/wifi-model/' + wifi.id" class="btn btn-primary w-100">查看详情</router-link>
           </div>
         </div>
       </div>

@@ -77,19 +77,22 @@
         <div class="submit-review mb-4">
           <h4>提交评价</h4>
           <form @submit.prevent="submitReview">
-            <div class="mb-3">
-              <label for="userRating" class="form-label">评分</label>
-              <select id="userRating" v-model="newReview.rating" class="form-select">
-                <option value="1">1星</option>
-                <option value="2">2星</option>
-                <option value="3">3星</option>
-                <option value="4">4星</option>
-                <option value="5">5星</option>
-              </select>
+            <div class="mb-4">
+              <label class="form-label">评分</label>
+              <div class="interactive-rating">
+                <span class="star" v-for="n in 5" :key="n" 
+                      @click="setRating(n)" 
+                      @mouseenter="hoverRating = n" 
+                      @mouseleave="hoverRating = 0"
+                      :class="{ 'active': n <= (hoverRating || newReview.rating) }">
+                  {{ n <= (hoverRating || newReview.rating) ? '★' : '☆' }}
+                </span>
+                <span class="rating-value ml-2">{{ newReview.rating }}星</span>
+              </div>
             </div>
-            <div class="mb-3">
+            <div class="mb-4">
               <label for="userComment" class="form-label">评价内容</label>
-              <textarea id="userComment" v-model="newReview.comment" class="form-control" rows="3"></textarea>
+              <textarea id="userComment" v-model="newReview.comment" class="form-control" rows="3" placeholder="请分享您的使用体验..."></textarea>
             </div>
             <button type="submit" class="btn btn-primary">提交评价</button>
           </form>
@@ -115,7 +118,8 @@ export default {
       newReview: {
         rating: 5,
         comment: ''
-      }
+      },
+      hoverRating: 0
     }
   },
   mounted() {
@@ -127,6 +131,9 @@ export default {
       this.wifiModel = wifiModelsData.find(model => model.id === id)
       this.modelReviews = reviewsData.filter(review => review.wifiModelId === id)
     },
+    setRating(rating) {
+      this.newReview.rating = rating
+    },
     submitReview() {
       // 模拟提交评价
       alert('评价提交成功！\n评分：' + this.newReview.rating + '星\n内容：' + this.newReview.comment)
@@ -134,6 +141,7 @@ export default {
         rating: 5,
         comment: ''
       }
+      this.hoverRating = 0
     }
   }
 }
@@ -147,6 +155,7 @@ export default {
 
 .star {
   margin-right: 2px;
+  cursor: pointer;
 }
 
 .rating-value {
@@ -167,6 +176,12 @@ export default {
   padding: 15px;
   border: 1px solid #e9ecef;
   border-radius: 5px;
+  transition: all 0.3s ease;
+}
+
+.review:hover {
+  background-color: #f8f9fa;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .review-header {
@@ -183,5 +198,31 @@ export default {
 .date {
   font-size: 0.8rem;
   color: #999;
+}
+
+/* 交互式评分样式 */
+.interactive-rating {
+  display: flex;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.interactive-rating .star {
+  font-size: 2rem;
+  color: #ddd;
+  transition: all 0.3s ease;
+  margin-right: 5px;
+}
+
+.interactive-rating .star:hover,
+.interactive-rating .star.active {
+  color: #ffc107;
+  transform: scale(1.2);
+}
+
+.interactive-rating .rating-value {
+  font-size: 1rem;
+  font-weight: 500;
+  margin-left: 10px;
 }
 </style>

@@ -1,30 +1,32 @@
 <template>
   <div class="container">
-    <h1>移动WiFi评级网站</h1>
-    <p>查找和评价最佳的移动WiFi服务</p>
+    <h1 class="scroll-in">移动WiFi评级网站</h1>
+    <p class="scroll-in scroll-in-delay-1">查找和评价最佳的移动WiFi服务</p>
     
-    <div class="search-section">
+    <div class="search-section scroll-in scroll-in-delay-2">
       <form @submit.prevent="search">
         <div class="input-group mb-3">
           <input type="text" class="form-control" placeholder="搜索WiFi型号或地点" v-model="searchQuery">
-          <button class="btn btn-primary" type="submit">搜索</button>
+          <button class="btn btn-primary btn-submit" type="submit">搜索</button>
         </div>
       </form>
     </div>
     
-    <h2>推荐WiFi热点</h2>
+    <h2 class="scroll-in scroll-in-delay-3">推荐WiFi热点</h2>
     <div class="row">
-      <div class="col-md-4" v-for="wifi in recommendedWifis" :key="wifi.id">
-        <div class="card mb-4">
+      <div class="col-md-4" v-for="(wifi, index) in recommendedWifis" :key="wifi.id">
+        <div class="card mb-4 card-hover scroll-in" :class="'scroll-in-delay-' + (index + 4)">
           <div class="card-body">
-            <h5 class="card-title">{{ wifi.name }}</h5>
-            <p class="card-text">{{ wifi.location }}</p>
-            <div class="rating">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+              <h5 class="card-title mb-0">{{ wifi.name }}</h5>
+              <span class="badge bg-primary rounded-pill">{{ wifi.location }}</span>
+            </div>
+            <div class="rating mb-3">
               <span class="star" v-for="n in 5" :key="n">
                 {{ n <= wifi.rating ? '★' : '☆' }}
               </span>
             </div>
-            <router-link :to="'/wifi-model/' + wifi.id" class="btn btn-primary">查看详情</router-link>
+            <router-link :to="'/wifi-model/' + wifi.id" class="btn btn-primary btn-submit">查看详情</router-link>
           </div>
         </div>
       </div>
@@ -55,7 +57,7 @@ export default {
 
 <style scoped>
 .rating {
-  color: #ffc107;
+  color: #000000ff;
   font-size: 1.2rem;
   margin: 10px 0;
 }
