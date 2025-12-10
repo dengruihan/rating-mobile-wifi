@@ -14,7 +14,10 @@
         <label for="password" class="form-label">密码</label>
         <input type="password" class="form-control" id="password" v-model="password" required>
       </div>
-      <button type="submit" class="btn btn-primary">注册</button>
+      <button type="submit" class="btn btn-primary" :disabled="isLoading">
+        <span v-if="isLoading" class="spinner-border spinner-border-sm me-2"></span>
+        {{ isLoading ? '注册中...' : '注册' }}
+      </button>
       <p class="mt-3">已有账号？<router-link to="/login">立即登录</router-link></p>
     </form>
   </div>
@@ -27,14 +30,41 @@ export default {
     return {
       username: '',
       email: '',
-      password: ''
+      password: '',
+      isLoading: false
     }
   },
   methods: {
-    register() {
-      // 模拟注册逻辑
-      alert('注册功能已触发，用户名：' + this.username)
-      this.$router.push('/login')
+    async register() {
+      this.isLoading = true
+      try {
+        const response = await fetch('http://127.0.0.1:5000/api/register', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            username: this.username,
+            email: this.email,
+            password: this.password
+          })
+        })
+        
+        const data = await response.json()
+        
+        if (response.ok) {
+          alert(data.message)
+          this.$router.push('/login')
+        } else {
+          alert(data.message)
+        }
+      } catch (error) {
+        console.error('注册失败:', error)
+        console.error('错误详情:', JSON.stringify(error))
+        alert('注册失败，请检查网络连接和控制台日志')
+      } finally {
+        this.isLoading = false
+      }
     }
   }
 }

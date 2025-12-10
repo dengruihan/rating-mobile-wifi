@@ -49,17 +49,38 @@ export default {
     }
   },
   methods: {
-    handleLogin() {
-      // 模拟登录逻辑
+    async handleLogin() {
       this.isLoading = true
-      
-      // 模拟网络请求延迟
-      setTimeout(() => {
-        alert('登录功能已触发，邮箱：' + this.email)
-        this.login() // 调用全局登录方法
-        this.$router.push('/dashboard')
+      try {
+        const response = await fetch('http://127.0.0.1:5000/api/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            email: this.email,
+            password: this.password
+          })
+        })
+        
+        const data = await response.json()
+        
+        if (response.ok) {
+          alert(data.message)
+          this.login(data.user) // 调用全局登录方法，传递用户信息
+          // 保存用户信息到本地存储
+          localStorage.setItem('user', JSON.stringify(data.user))
+          this.$router.push('/dashboard')
+        } else {
+          alert(data.message)
+        }
+      } catch (error) {
+        console.error('登录失败:', error)
+        console.error('错误详情:', JSON.stringify(error))
+        alert('登录失败，请检查网络连接和控制台日志')
+      } finally {
         this.isLoading = false
-      }, 1000)
+      }
     }
   }
 }

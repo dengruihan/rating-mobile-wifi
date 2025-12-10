@@ -3,17 +3,35 @@ import { ref, onMounted, provide } from 'vue'
 
 const isLoading = ref(true)
 const isLoggedIn = ref(false)
+const currentUser = ref(null)
 
 // 提供全局登录状态和方法
 provide('isLoggedIn', isLoggedIn)
-provide('login', () => {
+provide('currentUser', currentUser)
+provide('login', (user) => {
   isLoggedIn.value = true
+  currentUser.value = user
 })
 provide('logout', () => {
   isLoggedIn.value = false
+  currentUser.value = null
+  localStorage.removeItem('user')
 })
 
 onMounted(() => {
+  // 检查本地存储中的用户信息
+  const savedUser = localStorage.getItem('user')
+  if (savedUser) {
+    try {
+      const user = JSON.parse(savedUser)
+      isLoggedIn.value = true
+      currentUser.value = user
+    } catch (error) {
+      console.error('解析用户信息失败:', error)
+      localStorage.removeItem('user')
+    }
+  }
+  
   // 模拟页面加载
   setTimeout(() => {
     isLoading.value = false
@@ -51,12 +69,22 @@ onMounted(() => {
             </li>
           </ul>
           <ul class="navbar-nav ms-auto">
-            <li class="nav-item">
-              <router-link to="/login" class="nav-link">登录</router-link>
-            </li>
-            <li class="nav-item">
-              <router-link to="/register" class="nav-link">注册</router-link>
-            </li>
+            <template v-if="isLoggedIn">
+              <li class="nav-item">
+                <span class="nav-link">欢迎, {{ currentUser?.username }}</span>
+              </li>
+              <li class="nav-item">
+                <a href="#" class="nav-link" @click.prevent="logout">退出登录</a>
+              </li>
+            </template>
+            <template v-else>
+              <li class="nav-item">
+                <router-link to="/login" class="nav-link">登录</router-link>
+              </li>
+              <li class="nav-item">
+                <router-link to="/register" class="nav-link">注册</router-link>
+              </li>
+            </template>
           </ul>
         </div>
       </div>

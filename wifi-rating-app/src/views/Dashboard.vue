@@ -7,9 +7,9 @@
         <div class="card mb-4">
           <div class="card-header">个人信息</div>
           <div class="card-body">
-            <p><strong>用户名：</strong>张三</p>
-            <p><strong>邮箱：</strong>zhangsan@example.com</p>
-            <p><strong>注册日期：</strong>2023-12-01</p>
+            <p><strong>用户名：</strong>{{ currentUser?.username }}</p>
+            <p><strong>邮箱：</strong>{{ currentUser?.email }}</p>
+            <p><strong>注册日期：</strong>{{ currentUser?.registration_date }}</p>
             <button class="btn btn-primary">编辑个人信息</button>
           </div>
         </div>
@@ -68,6 +68,7 @@
 <script>
 export default {
   name: 'Dashboard',
+  inject: ['currentUser'],
   data() {
     return {
       userReviews: [
