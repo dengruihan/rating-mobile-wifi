@@ -5,7 +5,7 @@
         <div class="card card-hover scroll-in">
           <div class="card-body">
             <h2 class="text-center mb-4 scroll-in scroll-in-delay-1">用户登录</h2>
-            <form @submit.prevent="login">
+            <form @submit.prevent="handleLogin">
               <div class="mb-4 scroll-in scroll-in-delay-2">
                 <label for="email" class="form-label">邮箱</label>
                 <input type="email" class="form-control" id="email" v-model="email" required placeholder="请输入邮箱地址">
@@ -39,6 +39,7 @@
 <script>
 export default {
   name: 'Login',
+  inject: ['login'],
   data() {
     return {
       email: '',
@@ -48,13 +49,14 @@ export default {
     }
   },
   methods: {
-    login() {
+    handleLogin() {
       // 模拟登录逻辑
       this.isLoading = true
       
       // 模拟网络请求延迟
       setTimeout(() => {
         alert('登录功能已触发，邮箱：' + this.email)
+        this.login() // 调用全局登录方法
         this.$router.push('/dashboard')
         this.isLoading = false
       }, 1000)

@@ -111,6 +111,7 @@ import reviewsData from '../assets/data/reviews.json'
 
 export default {
   name: 'WifiModelDetail',
+  inject: ['isLoggedIn'],
   data() {
     return {
       wifiModel: null,
@@ -135,6 +136,12 @@ export default {
       this.newReview.rating = rating
     },
     submitReview() {
+      // 检查用户是否已登录
+      if (!this.isLoggedIn) {
+        this.$router.push('/login')
+        return
+      }
+      
       // 模拟提交评价
       alert('评价提交成功！\n评分：' + this.newReview.rating + '星\n内容：' + this.newReview.comment)
       this.newReview = {

@@ -1,7 +1,17 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, provide } from 'vue'
 
 const isLoading = ref(true)
+const isLoggedIn = ref(false)
+
+// 提供全局登录状态和方法
+provide('isLoggedIn', isLoggedIn)
+provide('login', () => {
+  isLoggedIn.value = true
+})
+provide('logout', () => {
+  isLoggedIn.value = false
+})
 
 onMounted(() => {
   // 模拟页面加载
