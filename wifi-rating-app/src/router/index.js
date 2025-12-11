@@ -3,7 +3,6 @@ import Login from '../views/Login.vue'
 import Register from '../views/Register.vue'
 import Home from '../views/Home.vue'
 import Dashboard from '../views/Dashboard.vue'
-import WifiModels from '../views/WifiModels.vue'
 import WifiModelDetail from '../views/WifiModelDetail.vue'
 import SearchResults from '../views/SearchResults.vue'
 
@@ -12,7 +11,8 @@ const routes = [
   { path: '/login', name: 'Login', component: Login },
   { path: '/register', name: 'Register', component: Register },
   { path: '/dashboard', name: 'Dashboard', component: Dashboard },
-  { path: '/wifi-models', name: 'WifiModels', component: WifiModels },
+  // 将WiFi型号页面重定向到首页
+  { path: '/wifi-models', redirect: '/' },
   { path: '/wifi-model/:id', name: 'WifiModelDetail', component: WifiModelDetail },
   { path: '/search', name: 'SearchResults', component: SearchResults }
 ]

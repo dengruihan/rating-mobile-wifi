@@ -70,9 +70,6 @@ onMounted(() => {
               <router-link to="/" class="nav-link">首页</router-link>
             </li>
             <li class="nav-item">
-              <router-link to="/wifi-models" class="nav-link">WiFi型号</router-link>
-            </li>
-            <li class="nav-item">
               <router-link to="/dashboard" class="nav-link">个人中心</router-link>
             </li>
           </ul>
