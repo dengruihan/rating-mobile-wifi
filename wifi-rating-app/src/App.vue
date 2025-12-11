@@ -5,18 +5,26 @@ const isLoading = ref(true)
 const isLoggedIn = ref(false)
 const currentUser = ref(null)
 
-// 提供全局登录状态和方法
-provide('isLoggedIn', isLoggedIn)
-provide('currentUser', currentUser)
-provide('login', (user) => {
+// 登录方法
+const login = (user) => {
   isLoggedIn.value = true
   currentUser.value = user
-})
-provide('logout', () => {
+}
+
+// 退出登录方法
+const logout = () => {
   isLoggedIn.value = false
   currentUser.value = null
   localStorage.removeItem('user')
-})
+  // 退出后重定向到首页
+  window.location.href = '/'
+}
+
+// 提供全局登录状态和方法
+provide('isLoggedIn', isLoggedIn)
+provide('currentUser', currentUser)
+provide('login', login)
+provide('logout', logout)
 
 onMounted(() => {
   // 检查本地存储中的用户信息
