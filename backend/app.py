@@ -127,6 +127,109 @@ def get_wifi_model(id):
         'reviews': [dict(review) for review in reviews]
     }), 200
 
+# 添加收藏
+@app.route('/api/favorites', methods=['POST'])
+def add_favorite():
+    data = request.get_json()
+    userId = data.get('userId')
+    wifiModelId = data.get('wifiModelId')
+    
+    if not userId or not wifiModelId:
+        return jsonify({'message': '缺少必要参数'}), 400
+    
+    conn = get_db_connection()
+    
+    try:
+        conn.execute('INSERT INTO Favorite (userId, wifiModelId) VALUES (?, ?)', (userId, wifiModelId))
+        conn.commit()
+        return jsonify({'message': '收藏成功'}), 201
+    except sqlite3.IntegrityError:
+        return jsonify({'message': '该WiFi已在收藏列表中'}), 400
+    finally:
+        conn.close()
+
+# 删除收藏
+@app.route('/api/favorites', methods=['DELETE'])
+def remove_favorite():
+    data = request.get_json()
+    userId = data.get('userId')
+    wifiModelId = data.get('wifiModelId')
+    
+    if not userId or not wifiModelId:
+        return jsonify({'message': '缺少必要参数'}), 400
+    
+    conn = get_db_connection()
+    result = conn.execute('DELETE FROM Favorite WHERE userId = ? AND wifiModelId = ?', (userId, wifiModelId))
+    conn.commit()
+    conn.close()
+    
+    if result.rowcount == 0:
+        return jsonify({'message': '收藏不存在'}), 404
+    
+    return jsonify({'message': '取消收藏成功'}), 200
+
+# 获取用户收藏列表
+@app.route('/api/favorites/<int:userId>', methods=['GET'])
+def get_user_favorites(userId):
+    conn = get_db_connection()
+    favorites = conn.execute('''
+        SELECT wm.* FROM Favorite f
+        JOIN WifiModel wm ON f.wifiModelId = wm.id
+        WHERE f.userId = ?
+    ''', (userId,)).fetchall()
+    conn.close()
+    
+    return jsonify([dict(fav) for fav in favorites]), 200
+
+# 获取用户评价历史
+@app.route('/api/user-reviews/<int:userId>', methods=['GET'])
+def get_user_reviews(userId):
+    conn = get_db_connection()
+    reviews = conn.execute('''
+        SELECT r.*, wm.name as wifiName FROM Review r
+        JOIN WifiModel wm ON r.wifiModelId = wm.id
+        WHERE r.userId = ?
+        ORDER BY r.date DESC
+    ''', (userId,)).fetchall()
+    conn.close()
+    
+    return jsonify([dict(review) for review in reviews]), 200
+
+# 提交评价
+@app.route('/api/reviews', methods=['POST'])
+def submit_review():
+    data = request.get_json()
+    userId = data.get('userId')
+    wifiModelId = data.get('wifiModelId')
+    userName = data.get('userName')
+    rating = data.get('rating')
+    comment = data.get('comment')
+    
+    if not userId or not wifiModelId or not userName or not rating:
+        return jsonify({'message': '缺少必要参数'}), 400
+    
+    conn = get_db_connection()
+    
+    try:
+        # 插入新评价
+        conn.execute('''
+            INSERT INTO Review (userId, wifiModelId, userName, rating, comment)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (userId, wifiModelId, userName, rating, comment))
+        
+        # 更新WiFi型号的平均评分和评价数量
+        conn.execute('''
+            UPDATE WifiModel
+            SET rating = (SELECT AVG(rating) FROM Review WHERE wifiModelId = ?),
+                reviewCount = (SELECT COUNT(*) FROM Review WHERE wifiModelId = ?)
+            WHERE id = ?
+        ''', (wifiModelId, wifiModelId, wifiModelId))
+        
+        conn.commit()
+        return jsonify({'message': '评价提交成功'}), 201
+    finally:
+        conn.close()
+
 if __name__ == '__main__':
     # 初始化数据库
     if not os.path.exists('database.db'):

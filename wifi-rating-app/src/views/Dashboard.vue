@@ -66,31 +66,37 @@
 </template>
 
 <script>
+import axios from 'axios'
+
 export default {
   name: 'Dashboard',
   inject: ['currentUser'],
   data() {
     return {
-      userReviews: [
-        {
-          id: 1,
-          wifiName: '华为随行WiFi 3',
-          rating: 5,
-          comment: '信号非常稳定，在山区也能正常使用，续航时间很长，非常满意！',
-          date: '2024-01-15'
-        },
-        {
-          id: 2,
-          wifiName: '小米移动WiFi',
-          rating: 4,
-          comment: '性价比很高，信号不错，适合日常使用。',
-          date: '2024-01-10'
+      userReviews: [],
+      favorites: []
+    }
+  },
+  mounted() {
+    this.loadUserData()
+  },
+  methods: {
+    async loadUserData() {
+      if (this.currentUser && this.currentUser.id) {
+        try {
+          // 同时获取用户评价和收藏列表
+          const [reviewsResponse, favoritesResponse] = await Promise.all([
+            axios.get(`http://127.0.0.1:5000/api/user-reviews/${this.currentUser.id}`),
+            axios.get(`http://127.0.0.1:5000/api/favorites/${this.currentUser.id}`)
+          ])
+          
+          this.userReviews = reviewsResponse.data
+          this.favorites = favoritesResponse.data
+        } catch (error) {
+          console.error('加载用户数据失败:', error)
+          alert('加载用户数据失败，请检查网络连接')
         }
-      ],
-      favorites: [
-        { id: 1, name: '华为随行WiFi 3', rating: 4.5 },
-        { id: 4, name: '中兴MF920U', rating: 4.6 }
-      ]
+      }
     }
   }
 }

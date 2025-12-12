@@ -106,12 +106,11 @@
 </template>
 
 <script>
-import wifiModelsData from '../assets/data/wifiModels.json'
-import reviewsData from '../assets/data/reviews.json'
+import axios from 'axios'
 
 export default {
   name: 'WifiModelDetail',
-  inject: ['isLoggedIn'],
+  inject: ['isLoggedIn', 'currentUser'],
   data() {
     return {
       wifiModel: null,
@@ -127,28 +126,56 @@ export default {
     this.loadWifiModel()
   },
   methods: {
-    loadWifiModel() {
-      const id = parseInt(this.$route.params.id)
-      this.wifiModel = wifiModelsData.find(model => model.id === id)
-      this.modelReviews = reviewsData.filter(review => review.wifiModelId === id)
+    async loadWifiModel() {
+      try {
+        const id = parseInt(this.$route.params.id)
+        const response = await axios.get(`http://127.0.0.1:5000/api/wifi-model/${id}`)
+        
+        this.wifiModel = response.data.wifiModel
+        this.wifiModel.dataPlans = response.data.dataPlans
+        this.modelReviews = response.data.reviews
+      } catch (error) {
+        console.error('加载WiFi型号详情失败:', error)
+        alert('加载WiFi型号详情失败，请检查网络连接')
+      }
     },
     setRating(rating) {
       this.newReview.rating = rating
     },
-    submitReview() {
+    async submitReview() {
       // 检查用户是否已登录
       if (!this.isLoggedIn) {
         this.$router.push('/login')
         return
       }
       
-      // 模拟提交评价
-      alert('评价提交成功！\n评分：' + this.newReview.rating + '星\n内容：' + this.newReview.comment)
-      this.newReview = {
-        rating: 5,
-        comment: ''
+      try {
+        const id = parseInt(this.$route.params.id)
+        
+        // 提交评价到后端
+        await axios.post('http://127.0.0.1:5000/api/reviews', {
+          userId: this.currentUser.id,
+          wifiModelId: id,
+          userName: this.currentUser.username,
+          rating: this.newReview.rating,
+          comment: this.newReview.comment
+        })
+        
+        // 重新加载WiFi型号详情，更新评价列表和平均评分
+        await this.loadWifiModel()
+        
+        // 重置评价表单
+        this.newReview = {
+          rating: 5,
+          comment: ''
+        }
+        this.hoverRating = 0
+        
+        alert('评价提交成功！')
+      } catch (error) {
+        console.error('提交评价失败:', error)
+        alert('提交评价失败，请检查网络连接')
       }
-      this.hoverRating = 0
     }
   }
 }

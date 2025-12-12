@@ -76,7 +76,7 @@ onMounted(() => {
           <ul class="navbar-nav ms-auto">
             <template v-if="isLoggedIn">
               <li class="nav-item">
-                <span class="nav-link">欢迎, {{ currentUser?.username }}</span>
+                <router-link to="/dashboard" class="nav-link">欢迎, {{ currentUser?.username }}</router-link>
               </li>
               <li class="nav-item">
                 <a href="#" class="nav-link" @click.prevent="logout">退出登录</a>
