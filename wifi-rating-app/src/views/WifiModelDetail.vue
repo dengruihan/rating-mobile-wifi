@@ -2,6 +2,9 @@
   <div class="container">
     <div v-if="wifiModel" class="row">
       <div class="col-md-8">
+        <button @click="goBack" class="btn btn-outline-secondary mb-3">
+          返回
+        </button>
         <h2>{{ wifiModel.name }}</h2>
         <h3>{{ wifiModel.brand }} - {{ wifiModel.model }}</h3>
         
@@ -32,7 +35,17 @@
         </div>
         
         <div class="price mb-4">
-          <h4>设备价格：¥{{ wifiModel.price }}</h4>
+          <div class="d-flex justify-content-between align-items-center">
+            <h4>设备价格：¥{{ wifiModel.price }}</h4>
+            <button 
+              @click="toggleFavorite" 
+              class="btn btn-outline-danger" 
+              :class="{ 'btn-danger': isFavorite }"
+              title="收藏"
+            >
+              {{ isFavorite ? '已收藏' : '收藏' }}
+            </button>
+          </div>
         </div>
         
         <div class="data-plans mb-4">
@@ -119,21 +132,73 @@ export default {
         rating: 5,
         comment: ''
       },
-      hoverRating: 0
+      hoverRating: 0,
+      isFavorite: false
     }
   },
   mounted() {
     this.loadWifiModel()
   },
   methods: {
+    goBack() {
+      this.$router.go(-1)
+    },
+    // 检查当前WiFi是否已收藏
+    async checkFavoriteStatus() {
+      if (this.isLoggedIn && this.currentUser.id && this.wifiModel) {
+        try {
+          const response = await axios.get(`http://127.0.0.1:8000/api/favorites/${this.currentUser.id}/`)
+          const favoriteIds = response.data.map(fav => fav.id)
+          this.isFavorite = favoriteIds.includes(this.wifiModel.id)
+        } catch (error) {
+          console.error('检查收藏状态失败:', error)
+        }
+      }
+    },
+    // 切换收藏状态
+    async toggleFavorite() {
+      if (!this.isLoggedIn) {
+        this.$router.push('/login')
+        return
+      }
+      
+      try {
+        if (this.isFavorite) {
+          // 取消收藏
+          await axios.delete('http://127.0.0.1:8000/api/favorites', {
+            data: { userId: this.currentUser.id, wifiModelId: this.wifiModel.id }
+          })
+          this.isFavorite = false
+        } else {
+          // 添加收藏
+          await axios.post('http://127.0.0.1:8000/api/favorites', {
+            userId: this.currentUser.id, wifiModelId: this.wifiModel.id
+          })
+          this.isFavorite = true
+        }
+      } catch (error) {
+        console.error('切换收藏状态失败:', error)
+        alert('操作失败，请检查网络连接')
+      }
+    },
     async loadWifiModel() {
       try {
         const id = parseInt(this.$route.params.id)
-        const response = await axios.get(`http://127.0.0.1:5000/api/wifi-model/${id}`)
+        const response = await axios.get(`http://127.0.0.1:8000/api/wifi-models/${id}/`)
         
-        this.wifiModel = response.data.wifiModel
-        this.wifiModel.dataPlans = response.data.dataPlans
-        this.modelReviews = response.data.reviews
+        this.wifiModel = response.data
+        // Django API没有返回dataPlans，暂时保持空数组
+        this.wifiModel.dataPlans = []
+        // 获取评价
+        try {
+          const reviewsResponse = await axios.get(`http://127.0.0.1:8000/api/reviews/${id}/`)
+          this.modelReviews = reviewsResponse.data
+        } catch (error) {
+          console.error('加载评价失败:', error)
+          this.modelReviews = []
+        }
+        // 加载完成后检查收藏状态
+        this.checkFavoriteStatus()
       } catch (error) {
         console.error('加载WiFi型号详情失败:', error)
         alert('加载WiFi型号详情失败，请检查网络连接')
@@ -153,7 +218,7 @@ export default {
         const id = parseInt(this.$route.params.id)
         
         // 提交评价到后端
-        await axios.post('http://127.0.0.1:5000/api/reviews', {
+        await axios.post('http://127.0.0.1:8000/api/reviews', {
           userId: this.currentUser.id,
           wifiModelId: id,
           userName: this.currentUser.username,
@@ -258,5 +323,21 @@ export default {
   font-size: 1rem;
   font-weight: 500;
   margin-left: 10px;
+}
+/* 按钮文字垂直居中 */
+.btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.25rem;
+  line-height: 1;
+  padding: 0.5rem 1rem !important;
+  border-radius: 0.25rem !important;
+}
+
+/* 确保图标和文字在按钮内正确对齐 */
+.btn i {
+  vertical-align: middle;
+  line-height: inherit;
 }
 </style>

@@ -86,7 +86,17 @@
               </span>
               <span class="rating-value">{{ wifi.rating }}</span>
             </div>
-            <router-link :to="'/wifi-model/' + wifi.id" class="btn btn-primary w-100">查看详情</router-link>
+            <div class="d-flex gap-2">
+              <router-link :to="'/wifi-model/' + wifi.id" class="btn btn-primary flex-grow-1">查看详情</router-link>
+              <button 
+                @click="toggleFavorite(wifi.id)" 
+                class="btn btn-outline-danger" 
+                :class="{ 'btn-danger': favoriteWifiIds.includes(wifi.id) }"
+                title="收藏"
+              >
+                <i class="bi bi-heart" :class="{ 'bi-heart-fill': favoriteWifiIds.includes(wifi.id) }"></i>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -95,29 +105,82 @@
 </template>
 
 <script>
-import wifiModelsData from '../assets/data/wifiModels.json'
+import axios from 'axios'
 
 export default {
   name: 'Home',
+  inject: ['isLoggedIn', 'currentUser'],
   data() {
     return {
       searchQuery: '',
       // 原推荐的WiFi型号ID列表
       recommendedWifiIds: [1, 2, 3],
       // WiFi型号数据
-      wifiModels: wifiModelsData,
+      wifiModels: [],
       filterBrand: '',
       sortBy: 'rating',
-      sortOrder: 'desc'
+      sortOrder: 'desc',
+      // 用户收藏的WiFi型号ID列表
+      favoriteWifiIds: []
     }
   },
+  async mounted() {
+    await this.loadWifiModels()
+    this.loadUserFavorites()
+  },
   methods: {
+    async loadWifiModels() {
+      try {
+        const response = await axios.get('http://127.0.0.1:8000/api/wifi-models/')
+        this.wifiModels = response.data
+      } catch (error) {
+        console.error('加载WiFi型号列表失败:', error)
+        this.wifiModels = []
+      }
+    },
     search() {
       this.$router.push({ name: 'SearchResults', query: { q: this.searchQuery } })
     },
     // 检查是否是推荐的WiFi型号
     isRecommended(id) {
       return this.recommendedWifiIds.includes(id)
+    },
+    // 加载用户收藏的WiFi列表
+    async loadUserFavorites() {
+      if (this.isLoggedIn && this.currentUser.id) {
+        try {
+          const response = await axios.get(`http://127.0.0.1:8000/api/favorites/${this.currentUser.id}/`)
+          this.favoriteWifiIds = response.data.map(fav => fav.id)
+        } catch (error) {
+          console.error('加载用户收藏失败:', error)
+        }
+      }
+    },
+    // 切换收藏状态
+    async toggleFavorite(wifiId) {
+      if (!this.isLoggedIn) {
+        this.$router.push('/login')
+        return
+      }
+      
+      try {
+        if (this.favoriteWifiIds.includes(wifiId)) {
+          // 取消收藏
+          await axios.delete('http://127.0.0.1:8000/api/favorites/', {
+            data: { userId: this.currentUser.id, wifiModelId: wifiId }
+          })
+          this.favoriteWifiIds = this.favoriteWifiIds.filter(id => id !== wifiId)
+        } else {
+          // 添加收藏
+          await axios.post('http://127.0.0.1:8000/api/favorites/', {
+            userId: this.currentUser.id, wifiModelId: wifiId
+          })
+          this.favoriteWifiIds.push(wifiId)
+        }
+      } catch (error) {
+        console.error('切换收藏状态失败:', error)
+        alert('操作失败，请检查网络连接')
+      }
     }
   },
   computed: {
@@ -175,5 +238,74 @@ export default {
 .info {
   margin: 10px 0;
   font-size: 0.9rem;
+}
+
+/* 卡片悬停动画 */
+.card-hover {
+  transition: all 0.3s ease;
+  transform: translateY(0);
+}
+
+.card-hover:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 12px 20px rgba(0, 0, 0, 0.15);
+}
+
+/* 卡片入场动画 */
+.scroll-in {
+  opacity: 0;
+  animation: fadeInUp 0.8s ease forwards;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 延迟动画 */
+.scroll-in-delay-1 {
+  animation-delay: 0.1s;
+}
+
+.scroll-in-delay-2 {
+  animation-delay: 0.2s;
+}
+
+.scroll-in-delay-3 {
+  animation-delay: 0.3s;
+}
+
+.scroll-in-delay-4 {
+  animation-delay: 0.4s;
+}
+
+.scroll-in-delay-5 {
+  animation-delay: 0.5s;
+}
+
+.scroll-in-delay-6 {
+  animation-delay: 0.6s;
+}
+
+.scroll-in-delay-7 {
+  animation-delay: 0.7s;
+}
+
+.scroll-in-delay-8 {
+  animation-delay: 0.8s;
+}
+
+.scroll-in-delay-9 {
+  animation-delay: 0.9s;
+}
+
+.scroll-in-delay-10 {
+  animation-delay: 1s;
 }
 </style>

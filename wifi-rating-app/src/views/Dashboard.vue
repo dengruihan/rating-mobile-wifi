@@ -86,8 +86,8 @@ export default {
         try {
           // 同时获取用户评价和收藏列表
           const [reviewsResponse, favoritesResponse] = await Promise.all([
-            axios.get(`http://127.0.0.1:5000/api/user-reviews/${this.currentUser.id}`),
-            axios.get(`http://127.0.0.1:5000/api/favorites/${this.currentUser.id}`)
+            axios.get(`http://127.0.0.1:8000/api/user-reviews/${this.currentUser.id}`),
+            axios.get(`http://127.0.0.1:8000/api/favorites/${this.currentUser.id}`)
           ])
           
           this.userReviews = reviewsResponse.data
