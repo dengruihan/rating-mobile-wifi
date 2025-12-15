@@ -24,14 +24,14 @@
             </div>
             <div v-else>
               <div v-for="review in userReviews" :key="review.id" class="mb-3">
-                <h6>{{ review.wifiName }}</h6>
+                <h6>{{ review.wifiModelName }}</h6>
                 <div class="rating">
                   <span class="star" v-for="n in 5" :key="n">
                     {{ n <= review.rating ? '★' : '☆' }}
                   </span>
                 </div>
                 <p class="comment">{{ review.comment }}</p>
-                <p class="date">{{ review.date }}</p>
+                <p class="date">{{ review.createdAt }}</p>
               </div>
             </div>
           </div>
@@ -82,12 +82,12 @@ export default {
   },
   methods: {
     async loadUserData() {
-      if (this.currentUser && this.currentUser.id) {
+      if (this.currentUser && this.currentUser.value && this.currentUser.value.id) {
         try {
           // 同时获取用户评价和收藏列表
           const [reviewsResponse, favoritesResponse] = await Promise.all([
-            axios.get(`http://127.0.0.1:8000/api/user-reviews/${this.currentUser.id}`),
-            axios.get(`http://127.0.0.1:8000/api/favorites/${this.currentUser.id}`)
+            axios.get(`http://127.0.0.1:8000/api/user-reviews/${this.currentUser.value.id}/`),
+            axios.get(`http://127.0.0.1:8000/api/favorites/${this.currentUser.value.id}/`)
           ])
           
           this.userReviews = reviewsResponse.data

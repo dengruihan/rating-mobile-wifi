@@ -50,13 +50,42 @@ export default {
           })
         })
         
-        const data = await response.json()
+        console.log('Response status:', response.status)
+        console.log('Response headers:', Object.fromEntries(response.headers.entries()))
+        
+        const text = await response.text()
+        console.log('Response text:', text)
+        
+        let data
+        try {
+          data = JSON.parse(text)
+          console.log('Parsed data:', data)
+        } catch (parseError) {
+          console.error('JSON parse error:', parseError)
+          alert('服务器响应格式错误')
+          return
+        }
         
         if (response.ok) {
-          alert(data.message)
-          this.$router.push('/login')
+          if (data && data.message) {
+            alert(data.message)
+            this.$router.push('/login')
+          } else {
+            console.error('Response data missing message:', data)
+            alert('注册成功！') // 提供默认消息
+            this.$router.push('/login')
+          }
         } else {
-          alert(data.message)
+          if (data && data.message) {
+            alert(data.message)
+          } else if (data && typeof data === 'object') {
+            // 如果是验证错误，显示所有错误信息
+            const errors = Object.values(data).flat().join('\n')
+            alert(errors)
+          } else {
+            console.error('Error response data:', data)
+            alert('注册失败，请稍后重试')
+          }
         }
       } catch (error) {
         console.error('注册失败:', error)

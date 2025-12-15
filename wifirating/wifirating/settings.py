@@ -20,7 +20,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-ln63x3m0)d$wz&h@nrs7q_a_r9ysdhte8$o=06#0uot_b!1+og"
+SECRET_KEY = "django-insecure-#&o34pgok9)q4*2)z(^t97$=$l#x_)sbqlq*j2lr3&zox(b9!!"
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -73,34 +73,16 @@ TEMPLATES = [
 WSGI_APPLICATION = "wifirating.wsgi.application"
 
 
-# CORS配置
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-]
-CORS_ALLOW_METHODS = [
-    "GET",
-    "POST",
-    "PUT",
-    "DELETE",
-]
-CORS_ALLOW_HEADERS = [
-    "Content-Type",
-]
-
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "database.db",
+        "NAME": BASE_DIR / "db.sqlite3",
     }
 }
 
-
-# 自定义用户模型
-AUTH_USER_MODEL = 'api.User'
 
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
@@ -132,11 +114,27 @@ USE_I18N = True
 
 USE_TZ = True
 
+# Custom user model
+AUTH_USER_MODEL = 'api.User'
+
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = "static/"
 
-# 禁用URL末尾自动添加斜杠
-APPEND_SLASH = False
+# CORS settings
+CORS_ALLOW_ALL_ORIGINS = True
+
+# REST Framework settings
+REST_FRAMEWORK = {
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.AllowAny',
+    ],
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.SessionAuthentication',
+    ],
+}
+
+# Allow all hosts for development
+ALLOWED_HOSTS = ['*']

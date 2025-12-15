@@ -63,16 +63,46 @@ export default {
           })
         })
         
-        const data = await response.json()
+        console.log('Response status:', response.status)
+        console.log('Response headers:', Object.fromEntries(response.headers.entries()))
+        
+        const text = await response.text()
+        console.log('Response text:', text)
+        
+        let data
+        try {
+          data = JSON.parse(text)
+          console.log('Parsed data:', data)
+        } catch (parseError) {
+          console.error('JSON parse error:', parseError)
+          alert('服务器响应格式错误')
+          return
+        }
         
         if (response.ok) {
-          alert(data.message)
-          this.login(data.user) // 调用全局登录方法，传递用户信息
-          // 保存用户信息到本地存储
-          localStorage.setItem('user', JSON.stringify(data.user))
-          this.$router.push('/dashboard')
+          if (data && data.message) {
+            alert(data.message)
+          } else {
+            alert('登录成功！')
+          }
+          
+          if (data && data.user) {
+            this.login(data.user) // 调用全局登录方法，传递用户信息
+            // 保存用户信息到本地存储
+            localStorage.setItem('user', JSON.stringify(data.user))
+            this.$router.push('/dashboard')
+          } else {
+            console.error('Response data missing user:', data)
+            alert('登录成功，但用户信息不完整')
+            this.$router.push('/dashboard')
+          }
         } else {
-          alert(data.message)
+          if (data && data.message) {
+            alert(data.message)
+          } else {
+            console.error('Error response data:', data)
+            alert('登录失败，请检查邮箱和密码')
+          }
         }
       } catch (error) {
         console.error('登录失败:', error)
