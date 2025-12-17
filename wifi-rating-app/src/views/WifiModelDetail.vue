@@ -163,21 +163,28 @@ export default {
       }
       
       try {
+        console.log("当前用户ID:", this.currentUser.value ? this.currentUser.value.id : "未定义")
+        console.log("WiFi模型ID:", this.wifiModel ? this.wifiModel.id : "未定义")
+        
         if (this.isFavorite) {
           // 取消收藏
           await axios.delete('http://127.0.0.1:8000/api/favorites/delete/', {
-            data: { userId: this.currentUser.value.id, wifiModelId: this.wifiModel.id }
+            data: { userId: this.currentUser.id, wifiModelId: this.wifiModel.id }
           })
           this.isFavorite = false
         } else {
           // 添加收藏
+          console.log("test")
+          //debugger
           await axios.post('http://127.0.0.1:8000/api/favorites/', {
-            userId: this.currentUser.value.id, wifiModelId: this.wifiModel.id
+            userId: this.currentUser.id, wifiModelId: this.wifiModel.id
           })
+          console.log("hihi")
           this.isFavorite = true
         }
       } catch (error) {
         console.error('切换收藏状态失败:', error)
+        console.error('错误详情:', error.response ? error.response.data : error.message)
         alert('操作失败，请检查网络连接')
       }
     },

@@ -166,7 +166,7 @@ export default {
       try {
         if (this.favoriteWifiIds.includes(wifiId)) {
           // 取消收藏
-          await axios.delete('http://127.0.0.1:8000/api/favorites/', {
+          await axios.delete('http://127.0.0.1:8000/api/favorites/delete/', {
             data: { userId: this.currentUser.id, wifiModelId: wifiId }
           })
           this.favoriteWifiIds = this.favoriteWifiIds.filter(id => id !== wifiId)
