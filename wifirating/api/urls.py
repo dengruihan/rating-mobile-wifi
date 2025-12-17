@@ -8,7 +8,6 @@ router.register(r'reviews', ReviewViewSet)
 router.register(r'favorites', FavoriteViewSet)
 
 urlpatterns = [
-    path('', include(router.urls)),
     path('register/', register, name='register'),
     path('login/', login, name='login'),
     path('reviews/<int:wifi_model_id>/', get_wifi_model_reviews, name='get_wifi_model_reviews'),
@@ -16,4 +15,5 @@ urlpatterns = [
     path('user-reviews/<int:user_id>/', get_user_reviews, name='get_user_reviews'),
     path('favorites/', add_favorite, name='add_favorite'),
     path('favorites/delete/', remove_favorite, name='remove_favorite'),
+    path('', include(router.urls)),
 ]

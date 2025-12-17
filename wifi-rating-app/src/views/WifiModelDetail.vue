@@ -145,10 +145,10 @@ export default {
     },
     // 检查当前WiFi是否已收藏
     async checkFavoriteStatus() {
-      if (this.isLoggedIn && this.currentUser.id && this.wifiModel) {
+      if (this.isLoggedIn && this.currentUser.value && this.currentUser.value.id && this.wifiModel) {
         try {
-          const response = await axios.get(`http://127.0.0.1:8000/api/favorites/${this.currentUser.id}/`)
-          const favoriteIds = response.data.map(fav => fav.id)
+          const response = await axios.get(`http://127.0.0.1:8000/api/favorites/${this.currentUser.value.id}/`)
+          const favoriteIds = response.data.map(fav => fav.wifi_model.id)
           this.isFavorite = favoriteIds.includes(this.wifiModel.id)
         } catch (error) {
           console.error('检查收藏状态失败:', error)
@@ -165,14 +165,14 @@ export default {
       try {
         if (this.isFavorite) {
           // 取消收藏
-          await axios.delete('http://127.0.0.1:8000/api/favorites', {
-            data: { userId: this.currentUser.id, wifiModelId: this.wifiModel.id }
+          await axios.delete('http://127.0.0.1:8000/api/favorites/delete/', {
+            data: { userId: this.currentUser.value.id, wifiModelId: this.wifiModel.id }
           })
           this.isFavorite = false
         } else {
           // 添加收藏
-          await axios.post('http://127.0.0.1:8000/api/favorites', {
-            userId: this.currentUser.id, wifiModelId: this.wifiModel.id
+          await axios.post('http://127.0.0.1:8000/api/favorites/', {
+            userId: this.currentUser.value.id, wifiModelId: this.wifiModel.id
           })
           this.isFavorite = true
         }
@@ -219,9 +219,9 @@ export default {
         
         // 提交评价到后端
         await axios.post('http://127.0.0.1:8000/api/reviews', {
-          userId: this.currentUser.id,
+          userId: this.currentUser.value.id,
           wifiModelId: id,
-          userName: this.currentUser.username,
+          userName: this.currentUser.value.username,
           rating: this.newReview.rating,
           comment: this.newReview.comment
         })
