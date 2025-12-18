@@ -168,7 +168,13 @@ export default {
     async loadWifiModels() {
       try {
         const response = await axios.get('http://127.0.0.1:8000/api/wifi-models/')
-        this.wifiModels = response.data
+        const list = response.data || []
+        // 兼容后端蛇形字段，映射为前端模板/排序使用的驼峰字段
+        this.wifiModels = list.map(item => ({
+          ...item,
+          signalStrength: item.signalStrength ?? item.signal_strength,
+          reviewCount: item.reviewCount ?? item.review_count
+        }))
       } catch (error) {
         console.error('加载WiFi型号列表失败:', error)
         this.wifiModels = []
