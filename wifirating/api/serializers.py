@@ -70,7 +70,25 @@ class WifiModelSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = WifiModel
-        fields = ['id', 'name', 'brand', 'model', 'signal_strength', 'speed', 'price', 'description', 'rating', 'review_count', 'data_plans']
+        fields = [
+            'id',
+            'name',
+            'brand',
+            'model',
+            'signal_strength',
+            'speed',
+            'price',
+            'description',
+            'rating',
+            'review_count',
+            'data_plans',
+            'approval_status',
+            'submitted_by',
+            'submitted_at',
+            'approved_by',
+            'approved_at',
+            'rejection_reason',
+        ]
 
 class FavoriteSerializer(serializers.ModelSerializer):
     wifi_model = WifiModelSerializer(read_only=True)

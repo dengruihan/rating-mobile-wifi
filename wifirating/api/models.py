@@ -19,6 +19,38 @@ class WifiModel(models.Model):
     description = models.TextField()
     rating = models.FloatField(default=0)
     review_count = models.IntegerField(default=0)
+
+    APPROVAL_PENDING = 'pending'
+    APPROVAL_APPROVED = 'approved'
+    APPROVAL_REJECTED = 'rejected'
+    APPROVAL_CHOICES = [
+        (APPROVAL_PENDING, '待审核'),
+        (APPROVAL_APPROVED, '已通过'),
+        (APPROVAL_REJECTED, '已驳回'),
+    ]
+
+    approval_status = models.CharField(
+        max_length=20,
+        choices=APPROVAL_CHOICES,
+        default=APPROVAL_APPROVED
+    )
+    submitted_by = models.ForeignKey(
+        User,
+        related_name='submitted_wifi_models',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
+    submitted_at = models.DateTimeField(null=True, blank=True)
+    approved_by = models.ForeignKey(
+        User,
+        related_name='approved_wifi_models',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
+    approved_at = models.DateTimeField(null=True, blank=True)
+    rejection_reason = models.TextField(null=True, blank=True)
     
     class Meta:
         db_table = 'wifi_models'

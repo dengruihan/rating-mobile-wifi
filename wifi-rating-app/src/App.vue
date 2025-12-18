@@ -72,6 +72,9 @@ onMounted(() => {
             <li class="nav-item">
               <router-link to="/dashboard" class="nav-link">个人中心</router-link>
             </li>
+            <li v-if="isLoggedIn" class="nav-item">
+              <router-link to="/submit-wifi-model" class="nav-link">提交新型号</router-link>
+            </li>
           </ul>
           <ul class="navbar-nav ms-auto">
             <template v-if="isLoggedIn">
