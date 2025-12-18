@@ -88,6 +88,63 @@
         </div>
       </div>
     </div>
+
+    <div class="card mb-4">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span>我提交的 Wi-Fi 型号</span>
+        <router-link to="/submit-wifi-model" class="btn btn-sm btn-primary">
+          提交新型号
+        </router-link>
+      </div>
+      <div class="card-body">
+        <div v-if="submissions.length === 0" class="text-muted">
+          暂无提交记录。你提交的新型号会先进入“待审核”，管理员通过后才会出现在首页列表。
+        </div>
+
+        <div v-else class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead>
+              <tr>
+                <th>名称</th>
+                <th>品牌/型号</th>
+                <th>状态</th>
+                <th>提交时间</th>
+                <th class="text-end">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="item in submissions" :key="item.id">
+                <td class="fw-semibold">{{ item.name }}</td>
+                <td class="text-muted">{{ item.brand }} / {{ item.model }}</td>
+                <td>
+                  <span class="badge" :class="statusMeta(item.approval_status).badgeClass">
+                    {{ statusMeta(item.approval_status).label }}
+                  </span>
+                </td>
+                <td class="text-muted">{{ formatDateTime(item.submitted_at) }}</td>
+                <td class="text-end">
+                  <router-link
+                    v-if="item.approval_status === 'approved'"
+                    :to="'/wifi-model/' + item.id"
+                    class="btn btn-sm btn-primary"
+                  >
+                    查看
+                  </router-link>
+                  <button
+                    v-else
+                    class="btn btn-sm"
+                    :class="item.approval_status === 'rejected' ? 'btn-outline-danger' : 'btn-outline-secondary'"
+                    disabled
+                  >
+                    {{ item.approval_status === 'rejected' ? '驳回' : '待审核' }}
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -102,7 +159,8 @@ export default {
       userReviews: [],
       favorites: [],
       userProfile: null,
-      uploadingAvatar: false
+      uploadingAvatar: false,
+      submissions: []
     }
   },
   mounted() {
@@ -140,11 +198,23 @@ export default {
       handler() {
         this.loadUserData()
         this.loadUserProfile()
+        this.loadUserSubmissions()
       },
       immediate: true
     }
   },
   methods: {
+    statusMeta(status) {
+      if (status === 'approved') return { label: '已通过', badgeClass: 'bg-success' }
+      if (status === 'rejected') return { label: '已驳回', badgeClass: 'bg-danger' }
+      return { label: '待审核', badgeClass: 'bg-warning text-dark' }
+    },
+    formatDateTime(raw) {
+      if (!raw) return '—'
+      const d = new Date(raw)
+      if (Number.isNaN(d.getTime())) return String(raw)
+      return d.toLocaleString()
+    },
     triggerAvatarPicker() {
       if (this.$refs.avatarInput) this.$refs.avatarInput.click()
     },
@@ -210,6 +280,19 @@ export default {
       } catch (error) {
         // 不影响页面其他部分，静默降级到 injectedUser
         console.error('加载用户资料失败:', error)
+      }
+    },
+    async loadUserSubmissions() {
+      if (!this.currentUserId) {
+        this.submissions = []
+        return
+      }
+      try {
+        const res = await axios.get(`http://127.0.0.1:8000/api/wifi-model-submissions/${this.currentUserId}/`)
+        this.submissions = res.data || []
+      } catch (error) {
+        console.error('加载提交记录失败:', error)
+        this.submissions = []
       }
     },
     async loadUserData() {
