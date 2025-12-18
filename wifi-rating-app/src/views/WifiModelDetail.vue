@@ -232,9 +232,14 @@ export default {
         const id = parseInt(this.$route.params.id)
         const response = await axios.get(`http://127.0.0.1:8000/api/wifi-models/${id}/`)
         
-        this.wifiModel = response.data
-        // Django API没有返回dataPlans，暂时保持空数组
-        this.wifiModel.dataPlans = []
+        // 兼容后端蛇形字段，映射为前端模板使用的驼峰字段
+        const api = response.data || {}
+        this.wifiModel = {
+          ...api,
+          signalStrength: api.signalStrength ?? api.signal_strength,
+          reviewCount: api.reviewCount ?? api.review_count,
+          dataPlans: api.dataPlans ?? api.data_plans ?? []
+        }
         // 获取评价
         try {
           const reviewsResponse = await axios.get(`http://127.0.0.1:8000/api/reviews/${id}/`)
