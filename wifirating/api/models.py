@@ -3,6 +3,8 @@ from django.contrib.auth.models import AbstractUser
 
 class User(AbstractUser):
     email = models.EmailField(unique=True)
+    # 头像：允许保存图片 URL 或 base64 data URL（便于前端直接展示）
+    avatar = models.TextField(blank=True, null=True)
     
     class Meta:
         db_table = 'users'
@@ -35,6 +37,7 @@ class Review(models.Model):
     rating = models.IntegerField()
     comment = models.TextField()
     date = models.DateField(auto_now_add=True)
+    is_anonymous = models.BooleanField(default=False)
     
     class Meta:
         db_table = 'reviews'

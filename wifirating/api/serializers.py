@@ -2,6 +2,11 @@ from rest_framework import serializers
 from .models import User, WifiModel, DataPlan, Review, Favorite
 from django.contrib.auth.password_validation import validate_password
 
+class UserProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'email', 'date_joined', 'avatar']
+
 class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(
         write_only=True, 
@@ -31,10 +36,34 @@ class DataPlanSerializer(serializers.ModelSerializer):
 class ReviewSerializer(serializers.ModelSerializer):
     user_name = serializers.ReadOnlyField(source='user.username')
     user_id = serializers.ReadOnlyField(source='user.id')
+    wifi_model_name = serializers.ReadOnlyField(source='wifi_model.name')
+    user_avatar = serializers.ReadOnlyField(source='user.avatar')
+    display_name = serializers.SerializerMethodField()
+    display_avatar = serializers.SerializerMethodField()
     
     class Meta:
         model = Review
-        fields = ['id', 'wifi_model_id', 'user_id', 'user_name', 'rating', 'comment', 'date']
+        fields = [
+            'id',
+            'wifi_model_id',
+            'wifi_model_name',
+            'user_id',
+            'user_name',
+            'user_avatar',
+            'is_anonymous',
+            'display_name',
+            'display_avatar',
+            'rating',
+            'comment',
+            'date',
+        ]
+
+    def get_display_name(self, obj):
+        return '匿名' if getattr(obj, 'is_anonymous', False) else (obj.user.username if obj.user else '匿名')
+
+    def get_display_avatar(self, obj):
+        # 匿名时不暴露真实头像
+        return None if getattr(obj, 'is_anonymous', False) else getattr(obj.user, 'avatar', None)
 
 class WifiModelSerializer(serializers.ModelSerializer):
     data_plans = DataPlanSerializer(many=True, read_only=True)

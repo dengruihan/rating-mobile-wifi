@@ -39,8 +39,8 @@
             <h4>设备价格：¥{{ wifiModel.price }}</h4>
             <button 
               @click="toggleFavorite" 
-              class="btn btn-outline-danger" 
-              :class="{ 'btn-danger': isFavorite }"
+              class="btn"
+              :class="isFavorite ? 'btn-danger' : 'btn-outline-danger'"
               title="收藏"
             >
               {{ isFavorite ? '已收藏' : '收藏' }}
@@ -75,7 +75,11 @@
           <h4>用户评价</h4>
           <div v-for="review in modelReviews" :key="review.id" class="review mb-3">
             <div class="review-header">
-              <h6>{{ review.userName }}</h6>
+              <div class="d-flex align-items-center gap-2">
+                <img v-if="review.avatar" :src="review.avatar" alt="头像" class="review-avatar" />
+                <i v-else class="bi bi-person-circle review-avatar-fallback"></i>
+                <h6 class="mb-0">{{ review.userName }}</h6>
+              </div>
               <div class="rating">
                 <span class="star" v-for="n in 5" :key="n">
                   {{ n <= review.rating ? '★' : '☆' }}
@@ -107,6 +111,10 @@
               <label for="userComment" class="form-label">评价内容</label>
               <textarea id="userComment" v-model="newReview.comment" class="form-control" rows="3" placeholder="请分享您的使用体验..."></textarea>
             </div>
+            <div class="mb-4 form-check">
+              <input id="anonymousReview" type="checkbox" class="form-check-input" v-model="newReview.isAnonymous" />
+              <label class="form-check-label" for="anonymousReview">匿名评价</label>
+            </div>
             <button type="submit" class="btn btn-primary">提交评价</button>
           </form>
         </div>
@@ -130,25 +138,61 @@ export default {
       modelReviews: [],
       newReview: {
         rating: 5,
-        comment: ''
+        comment: '',
+        isAnonymous: false
       },
       hoverRating: 0,
       isFavorite: false
+    }
+  },
+  computed: {
+    loggedIn() {
+      return this.getIsLoggedIn()
+    },
+    currentUserId() {
+      return this.getCurrentUserId()
+    }
+  },
+  watch: {
+    // 解决“刷新详情页时 App.vue 还没恢复 currentUser，导致收藏状态不加载”
+    loggedIn: {
+      handler() {
+        this.checkFavoriteStatus()
+      },
+      immediate: true
+    },
+    currentUserId: {
+      handler() {
+        this.checkFavoriteStatus()
+      },
+      immediate: true
     }
   },
   mounted() {
     this.loadWifiModel()
   },
   methods: {
+    getIsLoggedIn() {
+      return typeof this.isLoggedIn === 'object' && this.isLoggedIn !== null && 'value' in this.isLoggedIn
+        ? this.isLoggedIn.value
+        : !!this.isLoggedIn
+    },
+    getCurrentUserId() {
+      if (typeof this.currentUser === 'object' && this.currentUser !== null && 'value' in this.currentUser) {
+        return this.currentUser.value?.id
+      }
+      return this.currentUser?.id
+    },
     goBack() {
       this.$router.go(-1)
     },
     // 检查当前WiFi是否已收藏
     async checkFavoriteStatus() {
-      if (this.isLoggedIn && this.currentUser.value && this.currentUser.value.id && this.wifiModel) {
+      const userId = this.getCurrentUserId()
+      if (this.getIsLoggedIn() && userId && this.wifiModel) {
         try {
-          const response = await axios.get(`http://127.0.0.1:8000/api/favorites/${this.currentUser.value.id}/`)
-          const favoriteIds = response.data.map(fav => fav.wifi_model.id)
+          const response = await axios.get(`http://127.0.0.1:8000/api/favorites/${userId}/`)
+          const favoriteIds = response.data.map(fav => fav?.wifi_model?.id).filter(id => typeof id === 'number')
           this.isFavorite = favoriteIds.includes(this.wifiModel.id)
         } catch (error) {
           console.error('检查收藏状态失败:', error)
@@ -157,29 +201,24 @@ export default {
     },
     // 切换收藏状态
     async toggleFavorite() {
-      if (!this.isLoggedIn) {
+      const userId = this.getCurrentUserId()
+      if (!this.getIsLoggedIn() || !userId) {
         this.$router.push('/login')
         return
       }
       
       try {
-        console.log("当前用户ID:", this.currentUser.value ? this.currentUser.value.id : "未定义")
-        console.log("WiFi模型ID:", this.wifiModel ? this.wifiModel.id : "未定义")
-        
         if (this.isFavorite) {
           // 取消收藏
           await axios.delete('http://127.0.0.1:8000/api/favorites/delete/', {
-            data: { userId: this.currentUser.id, wifiModelId: this.wifiModel.id }
+            data: { userId, wifiModelId: this.wifiModel.id }
           })
           this.isFavorite = false
         } else {
           // 添加收藏
-          console.log("test")
-          //debugger
           await axios.post('http://127.0.0.1:8000/api/favorites/', {
-            userId: this.currentUser.id, wifiModelId: this.wifiModel.id
+            userId, wifiModelId: this.wifiModel.id
           })
-          console.log("hihi")
           this.isFavorite = true
         }
       } catch (error) {
@@ -199,7 +238,15 @@ export default {
         // 获取评价
         try {
           const reviewsResponse = await axios.get(`http://127.0.0.1:8000/api/reviews/${id}/`)
-          this.modelReviews = reviewsResponse.data
+          // 兼容后端蛇形字段，并处理匿名显示
+          this.modelReviews = (reviewsResponse.data || []).map(r => ({
+            id: r.id,
+            userName: r.display_name || r.user_name || '匿名',
+            avatar: r.display_avatar || null,
+            rating: r.rating,
+            comment: r.comment,
+            date: r.date
+          }))
         } catch (error) {
           console.error('加载评价失败:', error)
           this.modelReviews = []
@@ -216,7 +263,7 @@ export default {
     },
     async submitReview() {
       // 检查用户是否已登录
-      if (!this.isLoggedIn) {
+      if (!this.loggedIn) {
         this.$router.push('/login')
         return
       }
@@ -225,12 +272,12 @@ export default {
         const id = parseInt(this.$route.params.id)
         
         // 提交评价到后端
-        await axios.post('http://127.0.0.1:8000/api/reviews', {
-          userId: this.currentUser.value.id,
+        await axios.post('http://127.0.0.1:8000/api/reviews/', {
+          userId: this.currentUserId,
           wifiModelId: id,
-          userName: this.currentUser.value.username,
           rating: this.newReview.rating,
-          comment: this.newReview.comment
+          comment: this.newReview.comment,
+          isAnonymous: this.newReview.isAnonymous
         })
         
         // 重新加载WiFi型号详情，更新评价列表和平均评分
@@ -239,14 +286,16 @@ export default {
         // 重置评价表单
         this.newReview = {
           rating: 5,
-          comment: ''
+          comment: '',
+          isAnonymous: false
         }
         this.hoverRating = 0
         
         alert('评价提交成功！')
       } catch (error) {
         console.error('提交评价失败:', error)
-        alert('提交评价失败，请检查网络连接')
+        console.error('错误详情:', error.response ? error.response.data : error.message)
+        alert('提交评价失败，请检查网络连接或后端接口')
       }
     }
   }
@@ -295,6 +344,19 @@ export default {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 10px;
+}
+
+.review-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.review-avatar-fallback {
+  font-size: 1.6rem;
+  color: #6c757d;
 }
 
 .comment {

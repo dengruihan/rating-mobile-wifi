@@ -7,9 +7,35 @@
         <div class="card mb-4">
           <div class="card-header">个人信息</div>
           <div class="card-body">
-            <p><strong>用户名：</strong>{{ currentUser?.username }}</p>
-            <p><strong>邮箱：</strong>{{ currentUser?.email }}</p>
-            <p><strong>注册日期：</strong>{{ currentUser?.registration_date }}</p>
+            <div class="d-flex align-items-center gap-3 mb-3">
+              <div class="avatar-wrapper">
+                <img
+                  v-if="userInfo?.avatar"
+                  :src="userInfo.avatar"
+                  alt="头像"
+                  class="avatar-img"
+                />
+                <i v-else class="bi bi-person-circle avatar-fallback"></i>
+              </div>
+              <div class="d-flex flex-column gap-2">
+                <button class="btn btn-sm btn-outline-primary" @click="triggerAvatarPicker" :disabled="uploadingAvatar">
+                  {{ uploadingAvatar ? '上传中...' : '更换头像' }}
+                </button>
+                <button v-if="userInfo?.avatar" class="btn btn-sm btn-outline-secondary" @click="clearAvatar" :disabled="uploadingAvatar">
+                  清除头像
+                </button>
+                <input
+                  ref="avatarInput"
+                  type="file"
+                  accept="image/*"
+                  style="display:none"
+                  @change="onAvatarSelected"
+                />
+              </div>
+            </div>
+            <p><strong>用户名：</strong>{{ userInfo?.username }}</p>
+            <p><strong>邮箱：</strong>{{ userInfo?.email }}</p>
+            <p><strong>注册日期：</strong>{{ formattedRegistrationDate }}</p>
             <button class="btn btn-primary">编辑个人信息</button>
           </div>
         </div>
@@ -46,16 +72,16 @@
           <p>您还没有收藏任何WiFi设备</p>
         </div>
         <div v-else class="row">
-          <div class="col-md-3" v-for="wifi in favorites" :key="wifi.id">
+          <div class="col-md-3" v-for="favorite in favorites" :key="favorite.id">
             <div class="card">
               <div class="card-body">
-                <h6 class="card-title">{{ wifi.name }}</h6>
+                <h6 class="card-title">{{ favorite.wifi_model.name }}</h6>
                 <div class="rating">
                   <span class="star" v-for="n in 5" :key="n">
-                    {{ n <= wifi.rating ? '★' : '☆' }}
+                    {{ n <= favorite.wifi_model.rating ? '★' : '☆' }}
                   </span>
                 </div>
-                <router-link :to="'/wifi-model/' + wifi.id" class="btn btn-sm btn-primary">查看</router-link>
+                <router-link :to="'/wifi-model/' + favorite.wifi_model.id" class="btn btn-sm btn-primary">查看</router-link>
               </div>
             </div>
           </div>
@@ -74,23 +100,135 @@ export default {
   data() {
     return {
       userReviews: [],
-      favorites: []
+      favorites: [],
+      userProfile: null,
+      uploadingAvatar: false
     }
   },
   mounted() {
     this.loadUserData()
   },
+  computed: {
+    currentUserId() {
+      // currentUser 在 App.vue 中是 provide 的 ref；这里同时兼容误传普通对象
+      if (this.currentUser && typeof this.currentUser === 'object' && 'value' in this.currentUser) {
+        return this.currentUser.value?.id
+      }
+      return this.currentUser?.id
+    },
+    injectedUser() {
+      if (this.currentUser && typeof this.currentUser === 'object' && 'value' in this.currentUser) {
+        return this.currentUser.value
+      }
+      return this.currentUser
+    },
+    userInfo() {
+      // 优先使用后端拉取的完整资料（含 date_joined），否则退回到本地保存的 user
+      return this.userProfile || this.injectedUser
+    },
+    formattedRegistrationDate() {
+      const raw = this.userInfo?.date_joined || this.userInfo?.registration_date
+      if (!raw) return '—'
+      const d = new Date(raw)
+      if (Number.isNaN(d.getTime())) return String(raw)
+      return d.toLocaleString()
+    }
+  },
+  watch: {
+    // 解决“刷新/直达 dashboard 时 App.vue 还没从 localStorage 恢复 currentUser”
+    currentUserId: {
+      handler() {
+        this.loadUserData()
+        this.loadUserProfile()
+      },
+      immediate: true
+    }
+  },
   methods: {
+    triggerAvatarPicker() {
+      if (this.$refs.avatarInput) this.$refs.avatarInput.click()
+    },
+    async onAvatarSelected(event) {
+      const file = event.target.files && event.target.files[0]
+      if (!file) return
+
+      // 简单限制：避免把超大图片 base64 写进 sqlite
+      const maxBytes = 800 * 1024 // 800KB
+      if (file.size > maxBytes) {
+        alert('图片过大，请选择小于 800KB 的图片（建议截图/压缩后再上传）')
+        event.target.value = ''
+        return
+      }
+
+      const reader = new FileReader()
+      reader.onload = async () => {
+        const dataUrl = reader.result
+        if (typeof dataUrl !== 'string') return
+        await this.updateAvatar(dataUrl)
+        event.target.value = ''
+      }
+      reader.readAsDataURL(file)
+    },
+    async clearAvatar() {
+      await this.updateAvatar('')
+    },
+    async updateAvatar(avatar) {
+      if (!this.currentUserId) return
+      this.uploadingAvatar = true
+      try {
+        const response = await axios.patch(`http://127.0.0.1:8000/api/users/${this.currentUserId}/`, { avatar })
+        this.userProfile = response.data
+
+        // 同步更新全局 currentUser（App.vue provide 的 ref）
+        if (this.currentUser && typeof this.currentUser === 'object' && 'value' in this.currentUser && this.currentUser.value) {
+          this.currentUser.value.avatar = response.data.avatar
+        }
+        // 同步本地缓存（用于刷新恢复）
+        const saved = localStorage.getItem('user')
+        if (saved) {
+          try {
+            const u = JSON.parse(saved)
+            u.avatar = response.data.avatar
+            localStorage.setItem('user', JSON.stringify(u))
+          } catch {
+            // ignore
+          }
+        }
+      } catch (error) {
+        console.error('更新头像失败:', error)
+        console.error('错误详情:', error.response ? error.response.data : error.message)
+        alert('更新头像失败，请检查网络连接或后端接口')
+      } finally {
+        this.uploadingAvatar = false
+      }
+    },
+    async loadUserProfile() {
+      if (!this.currentUserId) return
+      try {
+        const response = await axios.get(`http://127.0.0.1:8000/api/users/${this.currentUserId}/`)
+        this.userProfile = response.data
+      } catch (error) {
+        // 不影响页面其他部分，静默降级到 injectedUser
+        console.error('加载用户资料失败:', error)
+      }
+    },
     async loadUserData() {
-      if (this.currentUser && this.currentUser.value && this.currentUser.value.id) {
+      if (this.currentUserId) {
         try {
           // 同时获取用户评价和收藏列表
           const [reviewsResponse, favoritesResponse] = await Promise.all([
-            axios.get(`http://127.0.0.1:8000/api/user-reviews/${this.currentUser.value.id}/`),
-            axios.get(`http://127.0.0.1:8000/api/favorites/${this.currentUser.value.id}/`)
+            axios.get(`http://127.0.0.1:8000/api/user-reviews/${this.currentUserId}/`),
+            axios.get(`http://127.0.0.1:8000/api/favorites/${this.currentUserId}/`)
           ])
           
-          this.userReviews = reviewsResponse.data
+          // 兼容后端蛇形字段，映射到前端模板使用的字段名
+          this.userReviews = (reviewsResponse.data || []).map(r => ({
+            id: r.id,
+            wifiModelName: r.wifi_model_name || `WiFi #${r.wifi_model_id}`,
+            rating: r.rating,
+            comment: r.comment,
+            createdAt: r.date
+          }))
           this.favorites = favoritesResponse.data
         } catch (error) {
           console.error('加载用户数据失败:', error)
@@ -103,6 +241,29 @@ export default {
 </script>
 
 <style scoped>
+.avatar-wrapper {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #f1f3f5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-fallback {
+  font-size: 2.2rem;
+  color: #6c757d;
+}
+
 .rating {
   color: #ffc107;
   font-size: 1rem;

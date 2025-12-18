@@ -90,11 +90,11 @@
               <router-link :to="'/wifi-model/' + wifi.id" class="btn btn-primary flex-grow-1">查看详情</router-link>
               <button 
                 @click="toggleFavorite(wifi.id)" 
-                class="btn btn-outline-danger" 
-                :class="{ 'btn-danger': favoriteWifiIds.includes(wifi.id) }"
+                class="btn"
+                :class="favoriteWifiIds.includes(wifi.id) ? 'btn-danger' : 'btn-outline-danger'"
                 title="收藏"
               >
-                <i class="bi bi-heart" :class="{ 'bi-heart-fill': favoriteWifiIds.includes(wifi.id) }"></i>
+                <i class="bi" :class="favoriteWifiIds.includes(wifi.id) ? 'bi-heart-fill' : 'bi-heart'"></i>
               </button>
             </div>
           </div>
@@ -124,11 +124,47 @@ export default {
       favoriteWifiIds: []
     }
   },
+  computed: {
+    loggedIn() {
+      return this.getIsLoggedIn()
+    },
+    currentUserId() {
+      return this.getCurrentUserId()
+    }
+  },
+  watch: {
+    // 解决“刷新首页时 App.vue 还没从 localStorage 恢复用户信息”
+    loggedIn: {
+      handler() {
+        this.loadUserFavorites()
+      },
+      immediate: true
+    },
+    currentUserId: {
+      handler() {
+        this.loadUserFavorites()
+      },
+      immediate: true
+    }
+  },
   async mounted() {
     await this.loadWifiModels()
-    this.loadUserFavorites()
+    await this.loadUserFavorites()
   },
   methods: {
+    getIsLoggedIn() {
+      // inject 进来的 isLoggedIn 在 App.vue 里是 ref
+      return typeof this.isLoggedIn === 'object' && this.isLoggedIn !== null && 'value' in this.isLoggedIn
+        ? this.isLoggedIn.value
+        : !!this.isLoggedIn
+    },
+    getCurrentUserId() {
+      // inject 进来的 currentUser 在 App.vue 里是 ref
+      if (typeof this.currentUser === 'object' && this.currentUser !== null && 'value' in this.currentUser) {
+        return this.currentUser.value?.id
+      }
+      return this.currentUser?.id
+    },
     async loadWifiModels() {
       try {
         const response = await axios.get('http://127.0.0.1:8000/api/wifi-models/')
@@ -147,10 +183,14 @@ export default {
     },
     // 加载用户收藏的WiFi列表
     async loadUserFavorites() {
-      if (this.isLoggedIn && this.currentUser.id) {
+      const userId = this.getCurrentUserId()
+      if (this.getIsLoggedIn() && userId) {
         try {
-          const response = await axios.get(`http://127.0.0.1:8000/api/favorites/${this.currentUser.id}/`)
-          this.favoriteWifiIds = response.data.map(fav => fav.id)
+          const response = await axios.get(`http://127.0.0.1:8000/api/favorites/${userId}/`)
+          // 后端返回 Favorite 记录，按钮状态需要的是 wifi_model.id（WiFi 型号 id）
+          this.favoriteWifiIds = response.data
+            .map(fav => fav?.wifi_model?.id)
+            .filter(id => typeof id === 'number')
         } catch (error) {
           console.error('加载用户收藏失败:', error)
         }
@@ -158,7 +198,8 @@ export default {
     },
     // 切换收藏状态
     async toggleFavorite(wifiId) {
-      if (!this.isLoggedIn) {
+      const userId = this.getCurrentUserId()
+      if (!this.getIsLoggedIn() || !userId) {
         this.$router.push('/login')
         return
       }
@@ -167,13 +208,13 @@ export default {
         if (this.favoriteWifiIds.includes(wifiId)) {
           // 取消收藏
           await axios.delete('http://127.0.0.1:8000/api/favorites/delete/', {
-            data: { userId: this.currentUser.id, wifiModelId: wifiId }
+            data: { userId, wifiModelId: wifiId }
           })
           this.favoriteWifiIds = this.favoriteWifiIds.filter(id => id !== wifiId)
         } else {
           // 添加收藏
           await axios.post('http://127.0.0.1:8000/api/favorites/', {
-            userId: this.currentUser.id, wifiModelId: wifiId
+            userId, wifiModelId: wifiId
           })
           this.favoriteWifiIds.push(wifiId)
         }
