@@ -44,62 +44,73 @@
       </div>
     </div>
     
-    <div class="row">
-      <div class="col-md-4" v-for="(wifi, index) in filteredAndSortedWifis" :key="wifi.id">
-        <div class="card mb-4 card-hover scroll-in" :class="'scroll-in-delay-' + (index + 5)">
-          <div class="card-body">
-            <!-- 推荐标记 -->
-            <div v-if="isRecommended(wifi.id)" class="badge bg-success mb-2">推荐</div>
-            
-            <div class="d-flex justify-content-between align-items-start mb-2">
-              <h5 class="card-title mb-0">{{ wifi.name }}</h5>
-              <span class="badge bg-primary rounded-pill">{{ wifi.brand }}</span>
-            </div>
-            <h6 class="card-subtitle mb-3 text-muted">{{ wifi.model }}</h6>
-            <div class="info mb-4">
-              <div class="row g-2">
-                <div class="col-6">
-                  <div class="progress" style="height: 6px; margin-bottom: 5px;">
-                    <div class="progress-bar bg-success" role="progressbar" :style="{ width: (wifi.signalStrength * 20) + '%' }"></div>
-                  </div>
-                  <p class="mb-1 small"><strong>信号强度：</strong>{{ wifi.signalStrength }}/5</p>
+    <div class="wifi-list-container">
+      <div class="wifi-list-scroll">
+        <div class="row">
+          <div class="col-md-4" v-for="(wifi, index) in filteredAndSortedWifis" :key="wifi.id">
+            <div class="card mb-4 card-hover scroll-in" :class="'scroll-in-delay-' + (index + 5)">
+              <div class="card-body">
+                <!-- 推荐标记 -->
+                <div v-if="isRecommended(wifi.id)" class="badge bg-success mb-2">推荐</div>
+                
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                  <h5 class="card-title mb-0">{{ wifi.name }}</h5>
+                  <span class="badge bg-primary rounded-pill">{{ wifi.brand }}</span>
                 </div>
-                <div class="col-6">
-                  <div class="progress" style="height: 6px; margin-bottom: 5px;">
-                    <div class="progress-bar bg-info" role="progressbar" :style="{ width: (wifi.speed * 20) + '%' }"></div>
+                <h6 class="card-subtitle mb-3 text-muted">{{ wifi.model }}</h6>
+                <div class="info mb-4">
+                  <div class="row g-2">
+                    <div class="col-6">
+                      <div class="progress" style="height: 6px; margin-bottom: 5px;">
+                        <div class="progress-bar bg-success" role="progressbar" :style="{ width: (wifi.signalStrength * 20) + '%' }"></div>
+                      </div>
+                      <p class="mb-1 small"><strong>信号强度：</strong>{{ wifi.signalStrength }}/5</p>
+                    </div>
+                    <div class="col-6">
+                      <div class="progress" style="height: 6px; margin-bottom: 5px;">
+                        <div class="progress-bar bg-info" role="progressbar" :style="{ width: (wifi.speed * 20) + '%' }"></div>
+                      </div>
+                      <p class="mb-1 small"><strong>速度：</strong>{{ wifi.speed }}/5</p>
+                    </div>
                   </div>
-                  <p class="mb-1 small"><strong>速度：</strong>{{ wifi.speed }}/5</p>
+                  <div class="row g-2 mt-2">
+                    <div class="col-6">
+                      <p class="mb-1 small"><strong>价格：</strong><span class="text-primary fw-bold">¥{{ wifi.price }}</span></p>
+                    </div>
+                    <div class="col-6">
+                      <p class="mb-1 small"><strong>评价数：</strong>{{ wifi.reviewCount }}</p>
+                    </div>
+                  </div>
+                </div>
+                <div class="rating mb-3">
+                  <span class="star" v-for="n in 5" :key="n">
+                    {{ n <= wifi.rating ? '★' : '☆' }}
+                  </span>
+                  <span class="rating-value">{{ wifi.rating }}</span>
+                </div>
+                <div class="d-flex gap-2">
+                  <router-link :to="'/wifi-model/' + wifi.id" class="btn btn-primary flex-grow-1">查看详情</router-link>
+                  <button 
+                    @click="toggleFavorite(wifi.id)" 
+                    class="btn"
+                    :class="favoriteWifiIds.includes(wifi.id) ? 'btn-danger' : 'btn-outline-danger'"
+                    title="收藏"
+                  >
+                    <i class="bi" :class="favoriteWifiIds.includes(wifi.id) ? 'bi-heart-fill' : 'bi-heart'"></i>
+                  </button>
                 </div>
               </div>
-              <div class="row g-2 mt-2">
-                <div class="col-6">
-                  <p class="mb-1 small"><strong>价格：</strong><span class="text-primary fw-bold">¥{{ wifi.price }}</span></p>
-                </div>
-                <div class="col-6">
-                  <p class="mb-1 small"><strong>评价数：</strong>{{ wifi.reviewCount }}</p>
-                </div>
-              </div>
-            </div>
-            <div class="rating mb-3">
-              <span class="star" v-for="n in 5" :key="n">
-                {{ n <= wifi.rating ? '★' : '☆' }}
-              </span>
-              <span class="rating-value">{{ wifi.rating }}</span>
-            </div>
-            <div class="d-flex gap-2">
-              <router-link :to="'/wifi-model/' + wifi.id" class="btn btn-primary flex-grow-1">查看详情</router-link>
-              <button 
-                @click="toggleFavorite(wifi.id)" 
-                class="btn"
-                :class="favoriteWifiIds.includes(wifi.id) ? 'btn-danger' : 'btn-outline-danger'"
-                title="收藏"
-              >
-                <i class="bi" :class="favoriteWifiIds.includes(wifi.id) ? 'bi-heart-fill' : 'bi-heart'"></i>
-              </button>
             </div>
           </div>
         </div>
       </div>
+    </div>
+    
+    <div class="submit-prompt mt-4 text-center">
+      <p class="text-muted mb-2">没看到自己想查的型号？</p>
+      <router-link to="/submit-wifi-model" class="btn btn-outline-primary">
+        提交一个新的Wi-Fi型号
+      </router-link>
     </div>
   </div>
 </template>
@@ -354,5 +365,46 @@ export default {
 
 .scroll-in-delay-10 {
   animation-delay: 1s;
+}
+
+/* WiFi列表滚动容器 */
+.wifi-list-container {
+  max-height: 600px;
+  overflow: hidden;
+  margin-bottom: 1rem;
+}
+
+.wifi-list-scroll {
+  max-height: 600px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 10px;
+}
+
+/* 自定义滚动条样式 */
+.wifi-list-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+
+.wifi-list-scroll::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.wifi-list-scroll::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+.wifi-list-scroll::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* 提交提示区域 */
+.submit-prompt {
+  padding: 1.5rem;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
 }
 </style>

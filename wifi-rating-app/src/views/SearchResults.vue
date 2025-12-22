@@ -1,20 +1,30 @@
 <template>
   <div class="container">
-    <h2>搜索结果</h2>
-    <p v-if="searchQuery">搜索关键词："{{ searchQuery }}"</p>
-    <p v-else>请输入搜索关键词</p>
+    <div class="d-flex align-items-center mb-3">
+      <button class="btn btn-outline-secondary me-3" @click="goBack" title="返回">
+        <i class="bi bi-arrow-left"></i> 返回
+      </button>
+      <h2 class="mb-0">搜索结果</h2>
+    </div>
+    <p v-if="searchQuery" class="mb-4">搜索关键词："{{ searchQuery }}"</p>
     
     <div class="search-section mb-4">
       <form @submit.prevent="search">
         <div class="input-group">
-          <input type="text" class="form-control" placeholder="搜索WiFi型号或品牌" v-model="searchQuery">
+          <input type="text" class="form-control" placeholder="搜索WiFi型号或品牌" v-model="searchQuery" @input="handleSearchInput">
           <button class="btn btn-primary" type="submit">搜索</button>
         </div>
       </form>
     </div>
     
-    <div v-if="searchResults.length === 0">
-      <p>没有找到匹配的WiFi型号</p>
+    <div v-if="loading" class="text-center">
+      <p>加载中...</p>
+    </div>
+    <div v-else-if="searchResults.length === 0">
+      <div class="alert alert-warning">
+        <p>没有找到匹配的WiFi型号</p>
+        <router-link to="/" class="btn btn-outline-primary">返回首页</router-link>
+      </div>
     </div>
     <div v-else>
       <div class="row">
@@ -40,37 +50,102 @@
 </template>
 
 <script>
-import wifiModelsData from '../assets/data/wifiModels.json'
+import axios from 'axios'
 
 export default {
   name: 'SearchResults',
   data() {
     return {
       searchQuery: '',
-      allWifis: wifiModelsData
+      allWifis: [],
+      loading: false
     }
   },
   computed: {
     searchResults() {
-      if (!this.searchQuery) return []
+      // 如果搜索关键词为空，返回所有WiFi型号
+      if (!this.searchQuery || this.searchQuery.trim() === '') {
+        return this.allWifis
+      }
       
-      const query = this.searchQuery.toLowerCase()
-      return this.allWifis.filter(wifi => 
-        wifi.name.toLowerCase().includes(query) ||
-        wifi.brand.toLowerCase().includes(query) ||
-        wifi.model.toLowerCase().includes(query)
-      )
+      const query = this.searchQuery.toLowerCase().trim()
+      return this.allWifis.filter(wifi => {
+        const name = (wifi.name || '').toLowerCase()
+        const brand = (wifi.brand || '').toLowerCase()
+        const model = (wifi.model || '').toLowerCase()
+        const description = (wifi.description || '').toLowerCase()
+        
+        return name.includes(query) ||
+               brand.includes(query) ||
+               model.includes(query) ||
+               description.includes(query)
+      })
     }
   },
-  mounted() {
+  watch: {
+    '$route.query.q'(newQuery) {
+      if (newQuery !== undefined) {
+        this.searchQuery = newQuery || ''
+      }
+    },
+    searchQuery(newVal) {
+      // 如果搜索关键词被清空，清除URL查询参数但保持在搜索结果页面
+      if (!newVal || newVal.trim() === '') {
+        if (this.$route.query.q) {
+          this.$router.replace({ name: 'SearchResults' })
+        }
+      }
+    }
+  },
+  async mounted() {
     // 从URL参数获取搜索查询
     if (this.$route.query.q) {
       this.searchQuery = this.$route.query.q
     }
+    await this.loadWifiModels()
   },
   methods: {
+    async loadWifiModels() {
+      this.loading = true
+      try {
+        const response = await axios.get('http://127.0.0.1:8000/api/wifi-models/')
+        const list = response.data || []
+        // 兼容后端蛇形字段，映射为前端使用的字段名
+        this.allWifis = list.map(item => ({
+          ...item,
+          signalStrength: item.signalStrength ?? item.signal_strength,
+          reviewCount: item.reviewCount ?? item.review_count
+        }))
+      } catch (error) {
+        console.error('加载WiFi型号列表失败:', error)
+        this.allWifis = []
+      } finally {
+        this.loading = false
+      }
+    },
     search() {
-      this.$router.push({ name: 'SearchResults', query: { q: this.searchQuery } })
+      if (!this.searchQuery || this.searchQuery.trim() === '') {
+        // 如果搜索关键词为空，清除URL查询参数但保持在搜索结果页面（显示所有产品）
+        this.$router.replace({ name: 'SearchResults' })
+        return
+      }
+      this.$router.push({ name: 'SearchResults', query: { q: this.searchQuery.trim() } })
+    },
+    handleSearchInput() {
+      // 当用户清空搜索框时，清除URL查询参数但保持在搜索结果页面（显示所有产品）
+      if (!this.searchQuery || this.searchQuery.trim() === '') {
+        if (this.$route.query.q) {
+          this.$router.replace({ name: 'SearchResults' })
+        }
+      }
+    },
+    goBack() {
+      // 如果浏览器历史记录中有上一页，则返回上一页，否则返回首页
+      if (window.history.length > 1) {
+        this.$router.go(-1)
+      } else {
+        this.$router.push('/')
+      }
     }
   }
 }
