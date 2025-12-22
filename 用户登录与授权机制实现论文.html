@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>基于LocalStorage和用户ID传递的Web应用认证机制实现</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 2.5cm 1.6cm 1.9cm 1.6cm;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "Times New Roman", "Times", serif;
+            font-size: 10pt;
+            line-height: 1.0;
+            color: #000;
+            background-color: #fff;
+            text-align: justify;
+        }
+
+        /* IEEE双栏布局 */
+        .two-column-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5cm;
+            column-gap: 0.5cm;
+        }
+
+        .column {
+            break-inside: avoid;
+        }
+
+        /* 单栏区域（标题、摘要、作者信息等） */
+        .single-column {
+            grid-column: 1 / -1;
+        }
+
+        /* 标题 */
+        h1 {
+            font-size: 11pt;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 0.3cm;
+            line-height: 1.2;
+            text-transform: none;
+        }
+
+        /* 作者信息 */
+        .author-info {
+            text-align: center;
+            font-size: 9pt;
+            margin-bottom: 0.3cm;
+            line-height: 1.0;
+        }
+
+        .author-info .author-name {
+            font-weight: normal;
+        }
+
+        .author-info .author-affiliation {
+            font-size: 9pt;
+            font-style: italic;
+        }
+
+        /* 摘要 */
+        .abstract {
+            margin-top: 0.3cm;
+            margin-bottom: 0.3cm;
+            font-size: 9pt;
+            text-align: justify;
+        }
+
+        .abstract-title {
+            font-weight: bold;
+            margin-bottom: 0.1cm;
+            text-indent: 0;
+        }
+
+        .abstract-text {
+            text-indent: 0.5cm;
+            line-height: 1.0;
+        }
+
+        /* 关键词 */
+        .keywords {
+            margin-top: 0.2cm;
+            margin-bottom: 0.3cm;
+            font-size: 9pt;
+            text-indent: 0;
+        }
+
+        .keywords-title {
+            font-weight: bold;
+        }
+
+        /* 章节标题 */
+        h2 {
+            font-size: 10pt;
+            font-weight: bold;
+            margin-top: 0.3cm;
+            margin-bottom: 0.15cm;
+            text-indent: 0;
+            text-align: left;
+            line-height: 1.0;
+        }
+
+        h3 {
+            font-size: 10pt;
+            font-weight: bold;
+            margin-top: 0.2cm;
+            margin-bottom: 0.1cm;
+            text-indent: 0;
+            text-align: left;
+            line-height: 1.0;
+        }
+
+        h4 {
+            font-size: 10pt;
+            font-weight: bold;
+            margin-top: 0.15cm;
+            margin-bottom: 0.08cm;
+            text-indent: 0;
+            text-align: left;
+            line-height: 1.0;
+        }
+
+        /* 段落 */
+        p {
+            text-align: justify;
+            text-indent: 0.5cm;
+            margin: 0.15cm 0;
+            line-height: 1.0;
+            font-size: 10pt;
+        }
+
+        /* 列表 */
+        ul, ol {
+            margin: 0.15cm 0;
+            padding-left: 0.8cm;
+            font-size: 10pt;
+        }
+
+        li {
+            margin: 0.1cm 0;
+            line-height: 1.0;
+            text-indent: 0;
+        }
+
+        /* 代码 */
+        code {
+            font-family: "Courier New", "Consolas", monospace;
+            font-size: 9pt;
+            background-color: #f0f0f0;
+            padding: 1px 2px;
+        }
+
+        pre {
+            background-color: #f0f0f0;
+            border: 1px solid #ccc;
+            padding: 0.15cm;
+            margin: 0.2cm 0;
+            overflow-x: auto;
+            font-family: "Courier New", "Consolas", monospace;
+            font-size: 8pt;
+            line-height: 1.0;
+            text-indent: 0;
+            break-inside: avoid;
+        }
+
+        pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+
+        /* 流程图 */
+        .flowchart {
+            background-color: #f9f9f9;
+            border: 1px solid #ccc;
+            padding: 0.2cm;
+            margin: 0.2cm 0;
+            font-family: "Courier New", "Consolas", monospace;
+            font-size: 8pt;
+            line-height: 1.0;
+            white-space: pre;
+            overflow-x: auto;
+            text-indent: 0;
+            break-inside: avoid;
+        }
+
+        strong {
+            font-weight: bold;
+        }
+
+        em {
+            font-style: italic;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 0.2cm 0;
+            font-size: 9pt;
+            break-inside: avoid;
+        }
+
+        th, td {
+            border: 1px solid #000;
+            padding: 0.1cm;
+            text-align: left;
+        }
+
+        th {
+            background-color: #fff;
+            font-weight: bold;
+        }
+
+        /* 移除装饰性样式 */
+        .success,
+        .warning,
+        .note {
+            background-color: transparent;
+            border: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        /* 图片 */
+        img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 0.2cm auto;
+        }
+
+        /* 图标题和表标题 */
+        .figure-caption,
+        .table-caption {
+            font-size: 8pt;
+            text-align: center;
+            margin-top: 0.1cm;
+            font-weight: normal;
+        }
+
+        /* 参考文献 */
+        .references {
+            margin-top: 0.5cm;
+        }
+
+        .reference-item {
+            font-size: 9pt;
+            margin-bottom: 0.1cm;
+            text-indent: -0.5cm;
+            padding-left: 0.5cm;
+        }
+
+        /* 确保双栏布局在打印时正确 */
+        @media print {
+            .two-column-container {
+                column-count: 2;
+                column-gap: 0.5cm;
+            }
+
+            .column {
+                break-inside: avoid;
+            }
+
+            h2, h3, pre, .flowchart, table {
+                break-after: avoid;
+            }
+        }
+
+        /* 处理跨栏元素 */
+        .span-columns {
+            grid-column: 1 / -1;
+        }
+    </style>
+</head>
+<body>
+    <div class="single-column">
+        <h1>基于LocalStorage和用户ID传递的Web应用认证机制实现</h1>
+        
+        <div class="author-info">
+            <div class="author-name">邓睿涵</div>
+            <div class="author-affiliation">杭州云谷学校，杭州，中国</div>
+            <div class="author-affiliation">Email: raymond.dengruihan@yungu.org</div>
+        </div>
+
+        <div class="abstract">
+            <div class="abstract-title">摘要</div>
+            <div class="abstract-text">—本文详细阐述了一个WiFi评级Web应用的用户登录与授权实现机制。该应用采用基于LocalStorage的客户端状态管理和用户ID显式传递的认证方式，而非传统的Cookie/Session或JWT Token机制。本文从浏览器端状态管理、服务器端用户识别、密码验证流程等四个核心问题出发，深入分析了认证系统的设计原理与实现细节，并通过代码示例和流程图说明了完整的认证流程。</div>
+        </div>
+
+        <div class="keywords">
+            <span class="keywords-title">关键词</span>—用户认证，LocalStorage，Django REST Framework，密码哈希，Web安全
+        </div>
+    </div>
+
+    <div class="two-column-container">
+        <div class="column">
+            <h2>I. 引言</h2>
+            <p>现代Web应用的用户认证机制通常采用Cookie/Session或JWT Token等标准方案。然而，本文所研究的WiFi评级应用采用了一种基于LocalStorage和用户ID显式传递的简化认证机制。该机制虽然不如传统方案完善，但在特定场景下能够满足基本的安全需求。本文旨在详细分析该认证机制的实现原理，回答以下四个核心问题：</p>
+            <ol>
+                <li>浏览器端如何管理授权数据，确保每次请求自动携带用户身份信息？</li>
+                <li>服务器如何识别用户并生成/传递认证凭证？</li>
+                <li>服务器如何存储和管理认证凭证以关联用户身份？</li>
+                <li>服务器如何验证用户名和密码的正确性？</li>
+            </ol>
+
+            <h2>II. 系统架构概述</h2>
+            <p>本应用采用前后端分离架构：</p>
+            <ul>
+                <li><strong>前端</strong>：Vue.js 3 + Vite，运行在 <code>http://localhost:5173</code></li>
+                <li><strong>后端</strong>：Django 6.0 + Django REST Framework，运行在 <code>http://localhost:8000</code></li>
+                <li><strong>数据库</strong>：SQLite（开发环境）</li>
+            </ul>
+            <p>认证机制的核心特点：</p>
+            <ul>
+                <li>使用浏览器LocalStorage存储用户信息（JSON格式）</li>
+                <li>前端在每次API请求中显式传递用户ID</li>
+                <li>后端通过用户ID直接识别用户，无需Token验证</li>
+                <li>使用Django内置的密码哈希机制进行密码验证</li>
+            </ul>
+
+            <h2>III. 问题一：浏览器端授权数据管理机制</h2>
+            
+            <h3>A. LocalStorage存储机制</h3>
+            <p>本应用<strong>未使用Cookie或Token</strong>，而是采用浏览器LocalStorage存储用户信息。登录成功后，用户数据以JSON格式存储在LocalStorage中：</p>
+            <pre><code>// 登录成功后保存用户信息
+localStorage.setItem('user', JSON.stringify(data.user))</code></pre>
+            <p>存储的用户信息包括：</p>
+            <pre><code>{
+  "id": 1,
+  "username": "张三",
+  "email": "zhangsan@example.com",
+  "date_joined": "2024-01-01T00:00:00Z",
+  "avatar": "data:image/png;base64,..."
+}</code></pre>
+
+            <h3>B. 应用启动时的状态恢复</h3>
+            <p>应用启动时（<code>App.vue</code>的<code>onMounted</code>钩子），会从LocalStorage读取用户信息并恢复登录状态：</p>
+            <pre><code>onMounted(() => {
+  const savedUser = localStorage.getItem('user')
+  if (savedUser) {
+    try {
+      const user = JSON.parse(savedUser)
+      isLoggedIn.value = true
+      currentUser.value = user
+    } catch (error) {
+      localStorage.removeItem('user')
+    }
+  }
+})</code></pre>
+
+            <h3>C. 请求中的用户ID传递</h3>
+            <p>由于<strong>未使用Cookie自动传递机制</strong>，本应用需要在每个需要用户身份的API请求中<strong>显式传递用户ID</strong>。前端通过Vue的依赖注入（inject）机制获取当前用户ID，并在请求体中包含：</p>
+            <p><strong>示例1：提交评价请求</strong></p>
+            <pre><code>await axios.post('http://127.0.0.1:8000/api/reviews/', {
+  userId: this.currentUser.value.id,
+  wifiModelId: id,
+  rating: this.newReview.rating,
+  comment: this.newReview.comment,
+  isAnonymous: false
+})</code></pre>
+            <p><strong>示例2：收藏操作请求</strong></p>
+            <pre><code>await axios.post('http://127.0.0.1:8000/api/favorites/', {
+  userId: this.currentUser.id,
+  wifiModelId: wifiId
+})</code></pre>
+            <p><strong>示例3：获取用户收藏列表</strong></p>
+            <pre><code>axios.get(`http://127.0.0.1:8000/api/favorites/${this.currentUser.value.id}/`)</code></pre>
+
+            <h3>D. 机制总结</h3>
+            <p>本应用的授权数据传递机制特点：</p>
+            <ul>
+                <li><strong>优点</strong>：实现简单，无需配置Cookie或Token管理</li>
+                <li><strong>缺点</strong>：每次请求需手动传递用户ID，容易遗漏；安全性较低，用户ID暴露在请求体中</li>
+            </ul>
+
+            <h2>IV. 问题二：服务器端用户识别与认证凭证生成</h2>
+            
+            <h3>A. 登录流程</h3>
+            <p>完整的登录流程如下：</p>
+            <div class="flowchart">用户输入邮箱和密码
+    ↓
+前端发送POST请求到 /api/login/
+    ↓
+后端查找用户（通过邮箱）
+    ↓
+Django authenticate()验证密码
+    ↓
+验证成功 → 返回用户信息（JSON）
+    ↓
+前端保存到LocalStorage</div>
+
+            <h3>B. 登录API实现</h3>
+            <p>后端登录接口（<code>api/views.py</code>）：</p>
+            <pre><code>@api_view(['POST'])
+def login(request):
+    if request.method == 'POST':
+        email = request.data.get('email')
+        password = request.data.get('password')
+        
+        # 步骤1：查找用户
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            return Response(
+                {'message': '邮箱或密码错误'}, 
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+        
+        # 步骤2：验证密码
+        user = authenticate(request, username=user.username, password=password)
+        if user is not None:
+            # 步骤3：返回用户信息（作为"凭证"）
+            return Response({
+                'message': '登录成功！',
+                'user': {
+                    'id': user.id,
+                    'username': user.username,
+                    'email': user.email,
+                    'date_joined': user.date_joined,
+                    'avatar': user.avatar
+                }
+            }, status=status.HTTP_200_OK)
+        else:
+            return Response(
+                {'message': '邮箱或密码错误'}, 
+                status=status.HTTP_401_UNAUTHORIZED
+            )</code></pre>
+        </div>
+
+        <div class="column">
+            <h2>V. 问题三：服务器端Token/Session管理</h2>
+            
+            <h3>A. 无服务器端Session管理</h3>
+            <p>本应用<strong>未实现服务器端的Session或Token存储机制</strong>。Django REST Framework配置中虽然启用了<code>SessionAuthentication</code>，但实际未使用：</p>
+            <pre><code># settings.py
+REST_FRAMEWORK = {
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.AllowAny',
+    ],
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.SessionAuthentication',
+    ],
+}</code></pre>
+            <p>由于所有API接口都设置为<code>AllowAny</code>权限，服务器<strong>不验证请求的认证状态</strong>，而是直接信任前端传递的用户ID。</p>
+
+            <h3>B. 用户身份识别方式</h3>
+            <p>服务器通过以下方式识别用户：</p>
+            <ol>
+                <li><strong>从请求体获取用户ID</strong>（POST/PUT/PATCH请求）：</li>
+            </ol>
+            <pre><code>user_id = request.data.get('userId')
+user = User.objects.get(id=user_id)</code></pre>
+            <ol start="2">
+                <li><strong>从URL路径获取用户ID</strong>（GET请求）：</li>
+            </ol>
+            <pre><code># URL: /api/favorites/1/
+favorites = Favorite.objects.filter(user_id=user_id)</code></pre>
+
+            <h3>C. 安全风险分析</h3>
+            <p>当前实现的安全隐患：</p>
+            <ul>
+                <li>无Token过期机制</li>
+                <li>无Token撤销机制</li>
+                <li>用户ID直接暴露在请求中，容易被篡改</li>
+                <li>服务器不验证请求的真实性</li>
+            </ul>
+            <p><strong>改进建议</strong>：</p>
+            <ol>
+                <li>实现JWT Token机制</li>
+                <li>添加Token过期时间</li>
+                <li>服务器端验证Token有效性</li>
+                <li>使用HTTPS加密传输</li>
+            </ol>
+
+            <h2>VI. 问题四：密码验证机制</h2>
+            
+            <h3>A. Django密码哈希机制</h3>
+            <p>Django使用<strong>PBKDF2（Password-Based Key Derivation Function 2）</strong>算法对密码进行哈希处理。用户注册时，密码自动被哈希并存储：</p>
+            <pre><code># api/serializers.py - UserSerializer
+def create(self, validated_data):
+    user = User(
+        username=validated_data['username'],
+        email=validated_data['email']
+    )
+    user.set_password(validated_data['password'])
+    user.save()
+    return user</code></pre>
+            <p><code>set_password()</code>方法内部使用PBKDF2算法，生成格式如下的哈希值：</p>
+            <pre><code>pbkdf2_sha256$260000$salt$hashed_password</code></pre>
+
+            <h3>B. 密码验证流程</h3>
+            <p>登录时的密码验证流程：</p>
+            <pre><code># 步骤1：通过邮箱查找用户
+user = User.objects.get(email=email)
+
+# 步骤2：使用Django authenticate()验证
+user = authenticate(request, username=user.username, password=password)</code></pre>
+            <p><code>authenticate()</code>函数的工作流程：</p>
+            <ol>
+                <li>从数据库读取用户的密码哈希值</li>
+                <li>使用相同的PBKDF2算法和盐值对输入的密码进行哈希</li>
+                <li>比较哈希结果是否一致</li>
+                <li>返回用户对象（验证成功）或None（验证失败）</li>
+            </ol>
+
+            <h3>C. 密码安全性保障</h3>
+            <p>Django的密码哈希机制提供以下安全保障：</p>
+            <ul>
+                <li><strong>单向哈希</strong>：无法从哈希值反推原始密码</li>
+                <li><strong>盐值（Salt）</strong>：每个密码使用随机盐值，防止彩虹表攻击</li>
+                <li><strong>迭代次数</strong>：PBKDF2默认260000次迭代，增加破解难度</li>
+                <li><strong>自动更新</strong>：如果Django升级哈希算法，旧密码会在用户下次登录时自动升级</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="single-column span-columns">
+        <h2>VII. 完整认证流程图</h2>
+        <div class="flowchart">┌─────────────┐
+│  用户登录   │
+└─────┬───────┘
+      │
+      ▼
+┌─────────────────────────┐
+│ 前端：输入邮箱和密码      │
+└─────┬───────────────────┘
+      │ POST /api/login/
+      ▼
+┌─────────────────────────┐
+│ 后端：查找用户（通过邮箱）│
+└─────┬───────────────────┘
+      │
+      ▼
+┌─────────────────────────┐
+│ authenticate()验证密码    │
+│ (PBKDF2哈希比较)         │
+└─────┬───────────────────┘
+      │
+      ├─ 验证失败 → 返回401错误
+      │
+      ▼ 验证成功
+┌─────────────────────────┐
+│ 返回用户信息（JSON）      │
+│ {id, username, email...}│
+└─────┬───────────────────┘
+      │
+      ▼
+┌─────────────────────────┐
+│ 前端：保存到LocalStorage │
+│ localStorage.setItem()   │
+└─────┬───────────────────┘
+      │
+      ▼
+┌─────────────────────────┐
+│ 后续API请求              │
+│ 请求体中包含userId       │
+└─────┬───────────────────┘
+      │
+      ▼
+┌─────────────────────────┐
+│ 后端：通过userId识别用户  │
+│ User.objects.get(id=...) │
+└─────────────────────────┘</div>
+    </div>
+
+    <div class="two-column-container">
+        <div class="column">
+            <h2>VIII. 代码实现细节</h2>
+            
+            <h3>A. 前端登录组件（Login.vue）</h3>
+            <pre><code>async handleLogin() {
+  const response = await fetch('http://127.0.0.1:8000/api/login/', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      email: this.email,
+      password: this.password
+    })
+  })
+  
+  const data = await response.json()
+  
+  if (response.ok && data.user) {
+    this.login(data.user)
+    localStorage.setItem('user', JSON.stringify(data.user))
+    this.$router.push('/dashboard')
+  }
+}</code></pre>
+
+            <h3>B. 全局状态管理（App.vue）</h3>
+            <pre><code>const isLoggedIn = ref(false)
+const currentUser = ref(null)
+
+const login = (user) => {
+  isLoggedIn.value = true
+  currentUser.value = user
+}
+
+provide('isLoggedIn', isLoggedIn)
+provide('currentUser', currentUser)
+provide('login', login)</code></pre>
+
+            <h3>C. 后端用户模型（models.py）</h3>
+            <pre><code>from django.contrib.auth.models import AbstractUser
+
+class User(AbstractUser):
+    email = models.EmailField(unique=True)
+    avatar = models.TextField(blank=True, null=True)
+    
+    class Meta:
+        db_table = 'users'</code></pre>
+            <p>继承<code>AbstractUser</code>自动获得：</p>
+            <ul>
+                <li>密码哈希字段（<code>password</code>）</li>
+                <li>用户名、邮箱等基础字段</li>
+                <li><code>set_password()</code>和<code>check_password()</code>方法</li>
+            </ul>
+        </div>
+
+        <div class="column">
+            <h2>IX. 安全性分析与改进建议</h2>
+            
+            <h3>A. 当前实现的安全问题</h3>
+            <ol>
+                <li><strong>无Token机制</strong>：用户ID直接暴露，容易被伪造</li>
+                <li><strong>无过期机制</strong>：登录状态永久有效，直到用户主动退出</li>
+                <li><strong>无服务器验证</strong>：服务器完全信任前端传递的用户ID</li>
+                <li><strong>HTTP传输</strong>：开发环境使用HTTP，密码和用户信息明文传输</li>
+            </ol>
+
+            <h3>B. 改进方案</h3>
+            <p><strong>方案1：实现JWT Token</strong></p>
+            <pre><code># 登录成功后生成JWT
+import jwt
+token = jwt.encode({
+    'user_id': user.id,
+    'exp': datetime.utcnow() + timedelta(days=7)
+}, SECRET_KEY, algorithm='HS256')</code></pre>
+            <p><strong>方案2：使用Django Session</strong></p>
+            <pre><code># 登录时创建Session
+request.session['user_id'] = user.id
+# 后续请求验证Session
+user_id = request.session.get('user_id')</code></pre>
+            <p><strong>方案3：添加请求签名</strong></p>
+            <pre><code># 前端生成请求签名
+signature = hmac.new(SECRET_KEY, f"{user_id}{timestamp}".encode()).hexdigest()
+# 后端验证签名</code></pre>
+
+            <h2>X. 结论</h2>
+            <p>本文详细分析了一个基于LocalStorage和用户ID传递的Web应用认证机制。该机制虽然实现简单，但存在明显的安全缺陷。主要特点包括：</p>
+            <ol>
+                <li><strong>浏览器端</strong>：使用LocalStorage存储用户信息，每次请求显式传递用户ID</li>
+                <li><strong>服务器端</strong>：直接通过用户ID识别用户，无Token/Session管理</li>
+                <li><strong>密码验证</strong>：使用Django的PBKDF2哈希机制，安全性较高</li>
+                <li><strong>安全风险</strong>：缺乏Token验证、过期机制和请求签名</li>
+            </ol>
+            <p>对于生产环境，建议采用JWT Token或Django Session机制，并启用HTTPS加密传输，以提高系统的安全性和可靠性。</p>
+        </div>
+    </div>
+
+    <div class="single-column span-columns">
+        <h2>参考文献</h2>
+        <div class="references">
+            <div class="reference-item">[1] Django Software Foundation, "Django Documentation," 2024. [Online]. Available: https://docs.djangoproject.com/</div>
+            <div class="reference-item">[2] Vue.js Team, "Vue.js Documentation," 2024. [Online]. Available: https://vuejs.org/</div>
+            <div class="reference-item">[3] Django REST Framework, "DRF Authentication," 2024. [Online]. Available: https://www.django-rest-framework.org/api-guide/authentication/</div>
+        </div>
+    </div>
+
+</body>
+</html>

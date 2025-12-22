@@ -1,6 +1,11 @@
 <template>
   <div class="container">
-    <h2 class="mb-4">提交新 WiFi 型号</h2>
+    <div class="d-flex align-items-center mb-4">
+      <button class="btn btn-outline-secondary me-3" @click="goBack" title="返回">
+        <i class="bi bi-arrow-left"></i> 返回
+      </button>
+      <h2 class="mb-0">提交新 WiFi 型号</h2>
+    </div>
 
     <div v-if="!loggedIn" class="alert alert-warning">
       需要登录后才能提交新型号。
@@ -74,7 +79,6 @@
         <button class="btn btn-primary" type="submit" :disabled="submitting">
           {{ submitting ? '提交中...' : '提交审核' }}
         </button>
-        <router-link class="btn btn-outline-secondary" to="/dashboard">返回个人中心</router-link>
       </div>
 
       <div v-if="lastResult" class="alert alert-info mt-3 mb-0">
@@ -120,7 +124,19 @@ export default {
       return this.currentUser?.id
     }
   },
+  mounted() {
+    // 页面加载时滚动到顶部
+    window.scrollTo(0, 0)
+  },
   methods: {
+    goBack() {
+      // 如果浏览器历史记录中有上一页，则返回上一页，否则返回首页
+      if (window.history.length > 1) {
+        this.$router.go(-1)
+      } else {
+        this.$router.push('/')
+      }
+    },
     addPlan() {
       this.form.dataPlans.push({ name: '', price: 0 })
     },
