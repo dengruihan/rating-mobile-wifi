@@ -2,9 +2,9 @@
   <div class="container">
     <h2>用户仪表板</h2>
     
-    <div class="row">
+    <div class="row dashboard-cards-row">
       <div class="col-md-6">
-        <div class="card mb-4">
+        <div class="card mb-4 profile-card">
           <div class="card-header">个人信息</div>
           <div class="card-body">
             <div class="d-flex align-items-center gap-3 mb-3">
@@ -42,14 +42,14 @@
       </div>
       
       <div class="col-md-6">
-        <div class="card mb-4">
+        <div class="card mb-4 reviews-card">
           <div class="card-header">我的评价</div>
-          <div class="card-body">
-            <div v-if="userReviews.length === 0">
+          <div class="card-body reviews-container">
+            <div v-if="userReviews.length === 0" class="reviews-empty">
               <p>您还没有评价过任何WiFi设备</p>
             </div>
-            <div v-else>
-              <div v-for="review in userReviews" :key="review.id" class="mb-3">
+            <div v-else class="reviews-scroll">
+              <div v-for="review in userReviews" :key="review.id" class="review-item">
                 <h6>{{ review.wifiModelName }}</h6>
                 <div class="rating">
                   <span class="star" v-for="n in 5" :key="n">
@@ -65,23 +65,25 @@
       </div>
     </div>
     
-    <div class="card mb-4">
+    <div class="card mb-4 favorites-card">
       <div class="card-header">收藏的WiFi热点</div>
-      <div class="card-body">
-        <div v-if="favorites.length === 0">
+      <div class="card-body favorites-container">
+        <div v-if="favorites.length === 0" class="favorites-empty">
           <p>您还没有收藏任何WiFi设备</p>
         </div>
-        <div v-else class="row">
-          <div class="col-md-3" v-for="favorite in favorites" :key="favorite.id">
-            <div class="card">
-              <div class="card-body">
-                <h6 class="card-title">{{ favorite.wifi_model.name }}</h6>
-                <div class="rating">
-                  <span class="star" v-for="n in 5" :key="n">
-                    {{ n <= favorite.wifi_model.rating ? '★' : '☆' }}
-                  </span>
+        <div v-else class="favorites-scroll">
+          <div class="row">
+            <div class="col-md-3" v-for="favorite in favorites" :key="favorite.id">
+              <div class="card mb-3">
+                <div class="card-body">
+                  <h6 class="card-title">{{ favorite.wifi_model.name }}</h6>
+                  <div class="rating">
+                    <span class="star" v-for="n in 5" :key="n">
+                      {{ n <= favorite.wifi_model.rating ? '★' : '☆' }}
+                    </span>
+                  </div>
+                  <router-link :to="'/wifi-model/' + favorite.wifi_model.id" class="btn btn-sm btn-primary">查看</router-link>
                 </div>
-                <router-link :to="'/wifi-model/' + favorite.wifi_model.id" class="btn btn-sm btn-primary">查看</router-link>
               </div>
             </div>
           </div>
@@ -89,59 +91,61 @@
       </div>
     </div>
 
-    <div class="card mb-4">
+    <div class="card mb-4 submissions-card">
       <div class="card-header d-flex justify-content-between align-items-center">
         <span>我提交的 Wi-Fi 型号</span>
         <router-link to="/submit-wifi-model" class="btn btn-sm btn-primary">
           提交新型号
         </router-link>
       </div>
-      <div class="card-body">
-        <div v-if="submissions.length === 0" class="text-muted">
-          暂无提交记录。你提交的新型号会先进入“待审核”，管理员通过后才会出现在首页列表。
+      <div class="card-body submissions-container">
+        <div v-if="submissions.length === 0" class="submissions-empty">
+          <p class="text-muted">暂无提交记录。你提交的新型号会先进入"待审核"，管理员通过后才会出现在首页列表。</p>
         </div>
 
-        <div v-else class="table-responsive">
-          <table class="table table-hover align-middle mb-0">
-            <thead>
-              <tr>
-                <th>名称</th>
-                <th>品牌/型号</th>
-                <th>状态</th>
-                <th>提交时间</th>
-                <th class="text-end">操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="item in submissions" :key="item.id">
-                <td class="fw-semibold">{{ item.name }}</td>
-                <td class="text-muted">{{ item.brand }} / {{ item.model }}</td>
-                <td>
-                  <span class="badge" :class="statusMeta(item.approval_status).badgeClass">
-                    {{ statusMeta(item.approval_status).label }}
-                  </span>
-                </td>
-                <td class="text-muted">{{ formatDateTime(item.submitted_at) }}</td>
-                <td class="text-end">
-                  <router-link
-                    v-if="item.approval_status === 'approved'"
-                    :to="'/wifi-model/' + item.id"
-                    class="btn btn-sm btn-primary"
-                  >
-                    查看
-                  </router-link>
-                  <button
-                    v-else
-                    class="btn btn-sm"
-                    :class="item.approval_status === 'rejected' ? 'btn-outline-danger' : 'btn-outline-secondary'"
-                    disabled
-                  >
-                    {{ item.approval_status === 'rejected' ? '驳回' : '待审核' }}
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+        <div v-else class="submissions-scroll">
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead>
+                <tr>
+                  <th>名称</th>
+                  <th>品牌/型号</th>
+                  <th>状态</th>
+                  <th>提交时间</th>
+                  <th class="text-end">操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="item in submissions" :key="item.id">
+                  <td class="fw-semibold">{{ item.name }}</td>
+                  <td class="text-muted">{{ item.brand }} / {{ item.model }}</td>
+                  <td>
+                    <span class="badge" :class="statusMeta(item.approval_status).badgeClass">
+                      {{ statusMeta(item.approval_status).label }}
+                    </span>
+                  </td>
+                  <td class="text-muted">{{ formatDateTime(item.submitted_at) }}</td>
+                  <td class="text-end">
+                    <router-link
+                      v-if="item.approval_status === 'approved'"
+                      :to="'/wifi-model/' + item.id"
+                      class="btn btn-sm btn-primary"
+                    >
+                      查看
+                    </router-link>
+                    <button
+                      v-else
+                      class="btn btn-sm"
+                      :class="item.approval_status === 'rejected' ? 'btn-outline-danger' : 'btn-outline-secondary'"
+                      disabled
+                    >
+                      {{ item.approval_status === 'rejected' ? '驳回' : '待审核' }}
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
@@ -347,6 +351,176 @@ export default {
   color: #6c757d;
 }
 
+/* 确保两个卡片高度一致 */
+.dashboard-cards-row > div {
+  display: flex;
+}
+
+.dashboard-cards-row .card {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.dashboard-cards-row .card-header {
+  flex-shrink: 0;
+}
+
+/* 固定个人信息卡片的高度 */
+.profile-card {
+  height: 450px;
+  max-height: 450px;
+}
+
+.reviews-card {
+  height: 450px;
+  max-height: 450px;
+}
+
+.dashboard-cards-row .card-body {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* 收藏的WiFi热点卡片 */
+.favorites-card {
+  height: 450px;
+  max-height: 450px;
+  display: flex;
+  flex-direction: column;
+}
+
+.favorites-card .card-header {
+  flex-shrink: 0;
+}
+
+.favorites-container {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.favorites-empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.favorites-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 10px;
+  min-height: 0;
+}
+
+/* 我提交的 Wi-Fi 型号卡片 */
+.submissions-card {
+  height: 450px;
+  max-height: 450px;
+  display: flex;
+  flex-direction: column;
+}
+
+.submissions-card .card-header {
+  flex-shrink: 0;
+}
+
+.submissions-container {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.submissions-empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.submissions-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: auto;
+  padding-right: 10px;
+  min-height: 0;
+}
+
+.submissions-scroll .table-responsive {
+  overflow: visible;
+}
+
+/* 我的评价卡片的内容区域 */
+.reviews-container {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.reviews-empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.reviews-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 10px;
+  min-height: 0;
+}
+
+/* 自定义滚动条样式（可选，让滚动条更美观） */
+.reviews-scroll::-webkit-scrollbar,
+.favorites-scroll::-webkit-scrollbar,
+.submissions-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+
+.reviews-scroll::-webkit-scrollbar-track,
+.favorites-scroll::-webkit-scrollbar-track,
+.submissions-scroll::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.reviews-scroll::-webkit-scrollbar-thumb,
+.favorites-scroll::-webkit-scrollbar-thumb,
+.submissions-scroll::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+.reviews-scroll::-webkit-scrollbar-thumb:hover,
+.favorites-scroll::-webkit-scrollbar-thumb:hover,
+.submissions-scroll::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+.review-item {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.review-item:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
 .rating {
   color: #ffc107;
   font-size: 1rem;
@@ -360,10 +534,12 @@ export default {
 .comment {
   font-size: 0.9rem;
   color: #666;
+  margin-bottom: 0.5rem;
 }
 
 .date {
   font-size: 0.8rem;
   color: #999;
+  margin-bottom: 0;
 }
 </style>
