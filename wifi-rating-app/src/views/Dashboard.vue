@@ -226,8 +226,14 @@ export default {
       const file = event.target.files && event.target.files[0]
       if (!file) return
 
-      // 简单限制：避免把超大图片 base64 写进 sqlite
-      const maxBytes = 800 * 1024 // 800KB
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
+      if (!allowedTypes.includes(file.type)) {
+        alert('不支持的文件类型，请选择 JPG、PNG、GIF 或 WebP 格式的图片')
+        event.target.value = ''
+        return
+      }
+
+      const maxBytes = 800 * 1024
       if (file.size > maxBytes) {
         alert('图片过大，请选择小于 800KB 的图片（建议截图/压缩后再上传）')
         event.target.value = ''
@@ -239,6 +245,10 @@ export default {
         const dataUrl = reader.result
         if (typeof dataUrl !== 'string') return
         await this.updateAvatar(dataUrl)
+        event.target.value = ''
+      }
+      reader.onerror = () => {
+        alert('读取文件失败，请重试')
         event.target.value = ''
       }
       reader.readAsDataURL(file)

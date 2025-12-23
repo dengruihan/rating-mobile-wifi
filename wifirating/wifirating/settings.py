@@ -11,6 +11,15 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
 from pathlib import Path
+import os
+from django.core.exceptions import ImproperlyConfigured
+
+def get_env_variable(var_name):
+    try:
+        return os.environ[var_name]
+    except KeyError:
+        error_msg = f'请设置环境变量 {var_name}'
+        raise ImproperlyConfigured(error_msg)
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -20,13 +29,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-#&o34pgok9)q4*2)z(^t97$=$l#x_)sbqlq*j2lr3&zox(b9!!"
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-#&o34pgok9)q4*2)z(^t97$=$l#x_)sbqlq*j2lr3&zox(b9!!')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-# 生产环境必须设置为 False
-DEBUG = True  # 仅用于开发环境
+DEBUG = os.environ.get('DEBUG', 'True').lower() in ('true', '1', 'yes')
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '').split(',') if os.environ.get('ALLOWED_HOSTS') else ['*']
 
 
 # Application definition
@@ -128,7 +136,11 @@ STATIC_URL = "static/"
 # CORS settings
 # 注意：生产环境应该明确指定允许的来源，而不是允许所有来源
 # 例如：CORS_ALLOWED_ORIGINS = ['https://yourdomain.com']
-CORS_ALLOW_ALL_ORIGINS = True  # 仅用于开发环境
+cors_origins = os.environ.get('CORS_ALLOWED_ORIGINS', '')
+if cors_origins:
+    CORS_ALLOWED_ORIGINS = cors_origins.split(',')
+else:
+    CORS_ALLOW_ALL_ORIGINS = True
 
 # REST Framework settings
 REST_FRAMEWORK = {
@@ -140,6 +152,17 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.SessionAuthentication',
     ],
 }
+
+# Security headers
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = 'DENY'
+SECURE_SSL_REDIRECT = os.environ.get('SECURE_SSL_REDIRECT', 'False').lower() in ('true', '1', 'yes')
+SESSION_COOKIE_SECURE = os.environ.get('SESSION_COOKIE_SECURE', 'False').lower() in ('true', '1', 'yes')
+CSRF_COOKIE_SECURE = os.environ.get('CSRF_COOKIE_SECURE', 'False').lower() in ('true', '1', 'yes')
+SECURE_HSTS_SECONDS = int(os.environ.get('SECURE_HSTS_SECONDS', '0'))
+SECURE_HSTS_INCLUDE_SUBDOMAINS = os.environ.get('SECURE_HSTS_INCLUDE_SUBDOMAINS', 'False').lower() in ('true', '1', 'yes')
+SECURE_HSTS_PRELOAD = os.environ.get('SECURE_HSTS_PRELOAD', 'False').lower() in ('true', '1', 'yes')
 
 # Allow all hosts for development
 # 注意：生产环境应该明确指定允许的主机

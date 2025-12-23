@@ -127,8 +127,8 @@ def get_wifi_model_reviews(request, wifi_model_id):
         reviews = Review.objects.filter(wifi_model_id=wifi_model_id)
         serializer = ReviewSerializer(reviews, many=True)
         return Response(serializer.data)
-    except Exception as e:
-        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception:
+        return Response({'error': '获取评价列表失败'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -141,8 +141,8 @@ def get_user_favorites(request, user_id):
         favorites = Favorite.objects.filter(user_id=user_id)
         serializer = FavoriteSerializer(favorites, many=True)
         return Response(serializer.data)
-    except Exception as e:
-        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception:
+        return Response({'error': '获取收藏列表失败'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -155,8 +155,8 @@ def get_user_reviews(request, user_id):
         reviews = Review.objects.filter(user_id=user_id)
         serializer = ReviewSerializer(reviews, many=True)
         return Response(serializer.data)
-    except Exception as e:
-        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception:
+        return Response({'error': '获取评价列表失败'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -241,8 +241,8 @@ def get_user_wifi_model_submissions(request, user_id):
         qs = WifiModel.objects.filter(submitted_by_id=user_id).order_by('-submitted_at', '-id')
         serializer = WifiModelSerializer(qs, many=True)
         return Response(serializer.data)
-    except Exception as e:
-        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception:
+        return Response({'error': '获取提交记录失败'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -297,8 +297,8 @@ def add_review(request):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     except WifiModel.DoesNotExist:
         return Response({'message': 'WiFi模型不存在'}, status=status.HTTP_404_NOT_FOUND)
-    except Exception as e:
-        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception:
+        return Response({'error': '添加评价失败'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
