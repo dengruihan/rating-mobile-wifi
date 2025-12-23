@@ -81,9 +81,13 @@ export default {
         
         if (response.ok) {
           if (data && data.token && data.user) {
-            // 保存token和用户信息
-            localStorage.setItem('token', data.token)
-            localStorage.setItem('user', JSON.stringify(data.user))
+            // 根据"记住我"选项决定存储方式
+            const storage = this.rememberMe ? localStorage : sessionStorage
+            storage.setItem('token', data.token)
+            storage.setItem('user', JSON.stringify(data.user))
+            // 保存存储类型标志，用于后续读取
+            storage.setItem('storageType', this.rememberMe ? 'local' : 'session')
+            
             this.login(data.user) // 调用全局登录方法，传递用户信息
             alert(data.message || '登录成功！')
             this.$router.push('/dashboard')

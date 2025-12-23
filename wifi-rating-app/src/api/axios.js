@@ -11,7 +11,11 @@ const apiClient = axios.create({
 // 请求拦截器：添加token到请求头
 apiClient.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token')
+    // 优先检查sessionStorage，然后检查localStorage
+    let token = sessionStorage.getItem('token')
+    if (!token) {
+      token = localStorage.getItem('token')
+    }
     if (token) {
       config.headers.Authorization = `Token ${token}`
     }
@@ -29,9 +33,13 @@ apiClient.interceptors.response.use(
   },
   (error) => {
     if (error.response && error.response.status === 401) {
-      // Token过期或无效，清除本地存储并跳转到登录页
+      // Token过期或无效，清除所有存储并跳转到登录页
       localStorage.removeItem('token')
       localStorage.removeItem('user')
+      localStorage.removeItem('storageType')
+      sessionStorage.removeItem('token')
+      sessionStorage.removeItem('user')
+      sessionStorage.removeItem('storageType')
       // 只有在非登录/注册页面时才跳转
       if (window.location.pathname !== '/login' && window.location.pathname !== '/register') {
         window.location.href = '/login'

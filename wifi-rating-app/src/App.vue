@@ -15,8 +15,13 @@ const login = (user) => {
 const logout = () => {
   isLoggedIn.value = false
   currentUser.value = null
+  // 清除所有存储（localStorage和sessionStorage）
   localStorage.removeItem('user')
   localStorage.removeItem('token')
+  localStorage.removeItem('storageType')
+  sessionStorage.removeItem('user')
+  sessionStorage.removeItem('token')
+  sessionStorage.removeItem('storageType')
   // 退出后重定向到首页
   window.location.href = '/'
 }
@@ -28,10 +33,17 @@ provide('login', login)
 provide('logout', logout)
 
 onMounted(() => {
-  // 检查本地存储中的token和用户信息
-  // 只有当token存在时，才认为用户已登录
-  const token = localStorage.getItem('token')
-  const savedUser = localStorage.getItem('user')
+  // 检查存储中的token和用户信息
+  // 优先检查sessionStorage，然后检查localStorage
+  let token = sessionStorage.getItem('token')
+  let savedUser = sessionStorage.getItem('user')
+  let storage = sessionStorage
+  
+  if (!token || !savedUser) {
+    token = localStorage.getItem('token')
+    savedUser = localStorage.getItem('user')
+    storage = localStorage
+  }
   
   if (token && savedUser) {
     try {
@@ -40,14 +52,19 @@ onMounted(() => {
       currentUser.value = user
     } catch (error) {
       console.error('解析用户信息失败:', error)
-      localStorage.removeItem('user')
-      localStorage.removeItem('token')
+      // 清除对应存储中的数据
+      storage.removeItem('user')
+      storage.removeItem('token')
+      storage.removeItem('storageType')
     }
   } else {
     // 如果没有token，清除可能存在的旧数据
-    if (savedUser) {
-      localStorage.removeItem('user')
-    }
+    localStorage.removeItem('user')
+    localStorage.removeItem('token')
+    localStorage.removeItem('storageType')
+    sessionStorage.removeItem('user')
+    sessionStorage.removeItem('token')
+    sessionStorage.removeItem('storageType')
   }
   
   // 模拟页面加载
