@@ -67,14 +67,14 @@ export default {
         }
         
         if (response.ok) {
+          // 如果注册时返回了token（后端已经实现），可以选择自动登录或跳转到登录页
+          // 这里选择跳转到登录页，让用户手动登录
           if (data && data.message) {
             alert(data.message)
-            this.$router.push('/login')
           } else {
-            console.error('Response data missing message:', data)
-            alert('注册成功！') // 提供默认消息
-            this.$router.push('/login')
+            alert('注册成功！请登录')
           }
+          this.$router.push('/login')
         } else {
           if (data && data.message) {
             alert(data.message)

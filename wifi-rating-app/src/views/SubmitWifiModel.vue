@@ -90,7 +90,7 @@
 </template>
 
 <script>
-import axios from 'axios'
+import apiClient from '../api/axios'
 
 export default {
   name: 'SubmitWifiModel',
@@ -162,7 +162,6 @@ export default {
       this.submitting = true
       try {
         const payload = {
-          userId: this.currentUserId,
           name: this.form.name,
           brand: this.form.brand,
           model: this.form.model,
@@ -172,7 +171,7 @@ export default {
           description: this.form.description,
           dataPlans
         }
-        const res = await axios.post('http://127.0.0.1:8000/api/wifi-model-submissions/', payload)
+        const res = await apiClient.post('/wifi-model-submissions/', payload)
         this.lastResult = res.data
         alert('提交成功，等待管理员审核！')
       } catch (e) {

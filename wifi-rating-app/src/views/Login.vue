@@ -80,21 +80,16 @@ export default {
         }
         
         if (response.ok) {
-          if (data && data.message) {
-            alert(data.message)
-          } else {
-            alert('登录成功！')
-          }
-          
-          if (data && data.user) {
-            this.login(data.user) // 调用全局登录方法，传递用户信息
-            // 保存用户信息到本地存储
+          if (data && data.token && data.user) {
+            // 保存token和用户信息
+            localStorage.setItem('token', data.token)
             localStorage.setItem('user', JSON.stringify(data.user))
+            this.login(data.user) // 调用全局登录方法，传递用户信息
+            alert(data.message || '登录成功！')
             this.$router.push('/dashboard')
           } else {
-            console.error('Response data missing user:', data)
-            alert('登录成功，但用户信息不完整')
-            this.$router.push('/dashboard')
+            console.error('Response data missing token or user:', data)
+            alert('登录成功，但响应数据不完整')
           }
         } else {
           if (data && data.message) {

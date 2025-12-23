@@ -116,7 +116,7 @@
 </template>
 
 <script>
-import axios from 'axios'
+import apiClient from '../api/axios'
 
 export default {
   name: 'Home',
@@ -178,7 +178,7 @@ export default {
     },
     async loadWifiModels() {
       try {
-        const response = await axios.get('http://127.0.0.1:8000/api/wifi-models/')
+        const response = await apiClient.get('/wifi-models/')
         const list = response.data || []
         // 兼容后端蛇形字段，映射为前端模板/排序使用的驼峰字段
         this.wifiModels = list.map(item => ({
@@ -203,7 +203,7 @@ export default {
       const userId = this.getCurrentUserId()
       if (this.getIsLoggedIn() && userId) {
         try {
-          const response = await axios.get(`http://127.0.0.1:8000/api/favorites/${userId}/`)
+          const response = await apiClient.get(`/favorites/${userId}/`)
           // 后端返回 Favorite 记录，按钮状态需要的是 wifi_model.id（WiFi 型号 id）
           this.favoriteWifiIds = response.data
             .map(fav => fav?.wifi_model?.id)
@@ -224,14 +224,14 @@ export default {
       try {
         if (this.favoriteWifiIds.includes(wifiId)) {
           // 取消收藏
-          await axios.delete('http://127.0.0.1:8000/api/favorites/delete/', {
-            data: { userId, wifiModelId: wifiId }
+          await apiClient.delete('/favorites/delete/', {
+            data: { wifiModelId: wifiId }
           })
           this.favoriteWifiIds = this.favoriteWifiIds.filter(id => id !== wifiId)
         } else {
           // 添加收藏
-          await axios.post('http://127.0.0.1:8000/api/favorites/', {
-            userId, wifiModelId: wifiId
+          await apiClient.post('/favorites/', {
+            wifiModelId: wifiId
           })
           this.favoriteWifiIds.push(wifiId)
         }

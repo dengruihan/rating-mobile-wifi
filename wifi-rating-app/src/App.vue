@@ -16,6 +16,7 @@ const logout = () => {
   isLoggedIn.value = false
   currentUser.value = null
   localStorage.removeItem('user')
+  localStorage.removeItem('token')
   // 退出后重定向到首页
   window.location.href = '/'
 }
@@ -27,15 +28,24 @@ provide('login', login)
 provide('logout', logout)
 
 onMounted(() => {
-  // 检查本地存储中的用户信息
+  // 检查本地存储中的token和用户信息
+  // 只有当token存在时，才认为用户已登录
+  const token = localStorage.getItem('token')
   const savedUser = localStorage.getItem('user')
-  if (savedUser) {
+  
+  if (token && savedUser) {
     try {
       const user = JSON.parse(savedUser)
       isLoggedIn.value = true
       currentUser.value = user
     } catch (error) {
       console.error('解析用户信息失败:', error)
+      localStorage.removeItem('user')
+      localStorage.removeItem('token')
+    }
+  } else {
+    // 如果没有token，清除可能存在的旧数据
+    if (savedUser) {
       localStorage.removeItem('user')
     }
   }

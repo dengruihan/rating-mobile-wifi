@@ -153,7 +153,7 @@
 </template>
 
 <script>
-import axios from 'axios'
+import apiClient from '../api/axios'
 
 export default {
   name: 'Dashboard',
@@ -250,7 +250,7 @@ export default {
       if (!this.currentUserId) return
       this.uploadingAvatar = true
       try {
-        const response = await axios.patch(`http://127.0.0.1:8000/api/users/${this.currentUserId}/`, { avatar })
+        const response = await apiClient.patch(`/users/${this.currentUserId}/`, { avatar })
         this.userProfile = response.data
 
         // 同步更新全局 currentUser（App.vue provide 的 ref）
@@ -279,7 +279,7 @@ export default {
     async loadUserProfile() {
       if (!this.currentUserId) return
       try {
-        const response = await axios.get(`http://127.0.0.1:8000/api/users/${this.currentUserId}/`)
+        const response = await apiClient.get(`/users/${this.currentUserId}/`)
         this.userProfile = response.data
       } catch (error) {
         // 不影响页面其他部分，静默降级到 injectedUser
@@ -292,7 +292,7 @@ export default {
         return
       }
       try {
-        const res = await axios.get(`http://127.0.0.1:8000/api/wifi-model-submissions/${this.currentUserId}/`)
+        const res = await apiClient.get(`/wifi-model-submissions/${this.currentUserId}/`)
         this.submissions = res.data || []
       } catch (error) {
         console.error('加载提交记录失败:', error)
@@ -304,8 +304,8 @@ export default {
         try {
           // 同时获取用户评价和收藏列表
           const [reviewsResponse, favoritesResponse] = await Promise.all([
-            axios.get(`http://127.0.0.1:8000/api/user-reviews/${this.currentUserId}/`),
-            axios.get(`http://127.0.0.1:8000/api/favorites/${this.currentUserId}/`)
+            apiClient.get(`/user-reviews/${this.currentUserId}/`),
+            apiClient.get(`/favorites/${this.currentUserId}/`)
           ])
           
           // 兼容后端蛇形字段，映射到前端模板使用的字段名

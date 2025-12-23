@@ -1,7 +1,8 @@
 from rest_framework import viewsets, status
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.authtoken.models import Token
 from django.contrib.auth import authenticate
 from django.db.models import Avg
 from django.utils import timezone
@@ -36,15 +37,29 @@ class FavoriteViewSet(viewsets.ModelViewSet):
     permission_classes = [AllowAny]
 
 @api_view(['POST'])
+@permission_classes([AllowAny])
 def register(request):
     if request.method == 'POST':
         serializer = UserSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save()
-            return Response({'message': '注册成功！'}, status=status.HTTP_201_CREATED)
+            user = serializer.save()
+            # 为用户创建Token
+            token, created = Token.objects.get_or_create(user=user)
+            return Response({
+                'message': '注册成功！',
+                'token': token.key,
+                'user': {
+                    'id': user.id,
+                    'username': user.username,
+                    'email': user.email,
+                    'date_joined': user.date_joined,
+                    'avatar': user.avatar
+                }
+            }, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['POST'])
+@permission_classes([AllowAny])
 def login(request):
     if request.method == 'POST':
         email = request.data.get('email')
@@ -59,8 +74,11 @@ def login(request):
         # 验证密码
         user = authenticate(request, username=user.username, password=password)
         if user is not None:
+            # 获取或创建Token
+            token, created = Token.objects.get_or_create(user=user)
             return Response({
                 'message': '登录成功！',
+                'token': token.key,
                 'user': {
                     'id': user.id,
                     'username': user.username,
@@ -73,12 +91,17 @@ def login(request):
             return Response({'message': '邮箱或密码错误'}, status=status.HTTP_401_UNAUTHORIZED)
 
 @api_view(['GET', 'PATCH', 'PUT'])
-@permission_classes([AllowAny])
+@permission_classes([IsAuthenticated])
 def get_user_profile(request, user_id):
     """
     GET: 获取用户资料（含 avatar / date_joined）
     PATCH/PUT: 更新用户资料（当前仅支持 avatar）
+    注意：用户只能查看和修改自己的资料
     """
+    # 验证用户只能操作自己的资料
+    if request.user.id != user_id:
+        return Response({'message': '无权访问其他用户的资料'}, status=status.HTTP_403_FORBIDDEN)
+    
     try:
         user = User.objects.get(id=user_id)
     except User.DoesNotExist:
@@ -108,8 +131,12 @@ def get_wifi_model_reviews(request, wifi_model_id):
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['GET'])
-@permission_classes([AllowAny])
+@permission_classes([IsAuthenticated])
 def get_user_favorites(request, user_id):
+    # 验证用户只能查看自己的收藏
+    if request.user.id != user_id:
+        return Response({'message': '无权访问其他用户的收藏'}, status=status.HTTP_403_FORBIDDEN)
+    
     try:
         favorites = Favorite.objects.filter(user_id=user_id)
         serializer = FavoriteSerializer(favorites, many=True)
@@ -118,8 +145,12 @@ def get_user_favorites(request, user_id):
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['GET'])
-@permission_classes([AllowAny])
+@permission_classes([IsAuthenticated])
 def get_user_reviews(request, user_id):
+    # 验证用户只能查看自己的评价
+    if request.user.id != user_id:
+        return Response({'message': '无权访问其他用户的评价'}, status=status.HTTP_403_FORBIDDEN)
+    
     try:
         reviews = Review.objects.filter(user_id=user_id)
         serializer = ReviewSerializer(reviews, many=True)
@@ -128,12 +159,11 @@ def get_user_reviews(request, user_id):
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['POST'])
-@permission_classes([AllowAny])
+@permission_classes([IsAuthenticated])
 def submit_wifi_model(request):
     """
     普通用户提交新 WiFi 型号（默认进入待审核），同时可提交资费套餐：
     {
-      "userId": 1,
       "name": "...",
       "brand": "...",
       "model": "...",
@@ -144,15 +174,10 @@ def submit_wifi_model(request):
       "dataPlans": [{"name":"月包10GB","price":39}, ...]
     }
     兼容蛇形字段：signal_strength/signalStrength, data_plans/dataPlans
+    注意：使用当前登录用户的ID，不再从请求中获取userId
     """
-    user_id = request.data.get('userId')
-    if not user_id:
-        return Response({'message': '缺少 userId'}, status=status.HTTP_400_BAD_REQUEST)
-
-    try:
-        user = User.objects.get(id=user_id)
-    except User.DoesNotExist:
-        return Response({'message': '用户不存在'}, status=status.HTTP_404_NOT_FOUND)
+    # 使用当前认证的用户（IsAuthenticated装饰器已经确保用户已认证）
+    user = request.user
 
     name = request.data.get('name')
     brand = request.data.get('brand')
@@ -202,11 +227,16 @@ def submit_wifi_model(request):
     return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 @api_view(['GET'])
-@permission_classes([AllowAny])
+@permission_classes([IsAuthenticated])
 def get_user_wifi_model_submissions(request, user_id):
     """
     查看某用户提交的型号（含 pending/rejected/approved）
+    注意：用户只能查看自己提交的型号
     """
+    # 验证用户只能查看自己提交的型号
+    if request.user.id != user_id:
+        return Response({'message': '无权访问其他用户提交的型号'}, status=status.HTTP_403_FORBIDDEN)
+    
     try:
         qs = WifiModel.objects.filter(submitted_by_id=user_id).order_by('-submitted_at', '-id')
         serializer = WifiModelSerializer(qs, many=True)
@@ -215,18 +245,19 @@ def get_user_wifi_model_submissions(request, user_id):
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['POST'])
-@permission_classes([AllowAny])
+@permission_classes([IsAuthenticated])
 def add_review(request):
     """
-    兼容前端提交格式：
+    添加评价，使用当前登录用户：
     {
-      "userId": 1,
       "wifiModelId": 2,
       "rating": 5,
-      "comment": "xxx"
+      "comment": "xxx",
+      "isAnonymous": false
     }
     """
-    user_id = request.data.get('userId')
+    # 使用当前认证的用户
+    user = request.user
     wifi_model_id = request.data.get('wifiModelId')
     rating = request.data.get('rating')
     comment = request.data.get('comment', '')
@@ -243,11 +274,10 @@ def add_review(request):
             return v.strip().lower() in ['true', '1', 'yes', 'y', 'on']
         return bool(v)
 
-    if not user_id or not wifi_model_id:
-        return Response({'message': '缺少 userId 或 wifiModelId'}, status=status.HTTP_400_BAD_REQUEST)
+    if not wifi_model_id:
+        return Response({'message': '缺少 wifiModelId'}, status=status.HTTP_400_BAD_REQUEST)
 
     try:
-        user = User.objects.get(id=user_id)
         wifi_model = WifiModel.objects.get(id=wifi_model_id)
 
         review = Review.objects.create(
@@ -265,22 +295,20 @@ def add_review(request):
 
         serializer = ReviewSerializer(review)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
-    except User.DoesNotExist:
-        return Response({'message': '用户不存在'}, status=status.HTTP_404_NOT_FOUND)
     except WifiModel.DoesNotExist:
         return Response({'message': 'WiFi模型不存在'}, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['POST'])
-@permission_classes([AllowAny])
+@permission_classes([IsAuthenticated])
 def add_favorite(request):
     if request.method == 'POST':
-        user_id = request.data.get('userId')
+        # 使用当前认证的用户
+        user = request.user
         wifi_model_id = request.data.get('wifiModelId')
         
         try:
-            user = User.objects.get(id=user_id)
             wifi_model = WifiModel.objects.get(id=wifi_model_id)
             
             favorite, created = Favorite.objects.get_or_create(user=user, wifi_model=wifi_model)
@@ -288,20 +316,19 @@ def add_favorite(request):
                 return Response({'message': '收藏成功！'}, status=status.HTTP_201_CREATED)
             else:
                 return Response({'message': '已经收藏过了！'}, status=status.HTTP_200_OK)
-        except User.DoesNotExist:
-            return Response({'message': '用户不存在'}, status=status.HTTP_404_NOT_FOUND)
         except WifiModel.DoesNotExist:
             return Response({'message': 'WiFi模型不存在'}, status=status.HTTP_404_NOT_FOUND)
 
 @api_view(['DELETE'])
-@permission_classes([AllowAny])
+@permission_classes([IsAuthenticated])
 def remove_favorite(request):
     if request.method == 'DELETE':
-        user_id = request.data.get('userId')
+        # 使用当前认证的用户
+        user = request.user
         wifi_model_id = request.data.get('wifiModelId')
         
         try:
-            favorite = Favorite.objects.get(user_id=user_id, wifi_model_id=wifi_model_id)
+            favorite = Favorite.objects.get(user=user, wifi_model_id=wifi_model_id)
             favorite.delete()
             return Response({'message': '取消收藏成功！'}, status=status.HTTP_200_OK)
         except Favorite.DoesNotExist:

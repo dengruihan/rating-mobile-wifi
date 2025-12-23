@@ -23,7 +23,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = "django-insecure-#&o34pgok9)q4*2)z(^t97$=$l#x_)sbqlq*j2lr3&zox(b9!!"
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# 生产环境必须设置为 False
+DEBUG = True  # 仅用于开发环境
 
 ALLOWED_HOSTS = []
 
@@ -38,6 +39,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework",
+    "rest_framework.authtoken",
     "corsheaders",
     "api",
 ]
@@ -124,17 +126,22 @@ AUTH_USER_MODEL = 'api.User'
 STATIC_URL = "static/"
 
 # CORS settings
-CORS_ALLOW_ALL_ORIGINS = True
+# 注意：生产环境应该明确指定允许的来源，而不是允许所有来源
+# 例如：CORS_ALLOWED_ORIGINS = ['https://yourdomain.com']
+CORS_ALLOW_ALL_ORIGINS = True  # 仅用于开发环境
 
 # REST Framework settings
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.AllowAny',
+        'rest_framework.permissions.IsAuthenticated',
     ],
     'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
         'rest_framework.authentication.SessionAuthentication',
     ],
 }
 
 # Allow all hosts for development
-ALLOWED_HOSTS = ['*']
+# 注意：生产环境应该明确指定允许的主机
+# 例如：ALLOWED_HOSTS = ['yourdomain.com', 'www.yourdomain.com']
+ALLOWED_HOSTS = ['*']  # 仅用于开发环境

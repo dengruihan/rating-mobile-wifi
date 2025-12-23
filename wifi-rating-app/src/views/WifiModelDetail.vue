@@ -127,7 +127,7 @@
 </template>
 
 <script>
-import axios from 'axios'
+import apiClient from '../api/axios'
 
 export default {
   name: 'WifiModelDetail',
@@ -191,7 +191,7 @@ export default {
       const userId = this.getCurrentUserId()
       if (this.getIsLoggedIn() && userId && this.wifiModel) {
         try {
-          const response = await axios.get(`http://127.0.0.1:8000/api/favorites/${userId}/`)
+          const response = await apiClient.get(`/favorites/${userId}/`)
           const favoriteIds = response.data.map(fav => fav?.wifi_model?.id).filter(id => typeof id === 'number')
           this.isFavorite = favoriteIds.includes(this.wifiModel.id)
         } catch (error) {
@@ -210,14 +210,14 @@ export default {
       try {
         if (this.isFavorite) {
           // 取消收藏
-          await axios.delete('http://127.0.0.1:8000/api/favorites/delete/', {
-            data: { userId, wifiModelId: this.wifiModel.id }
+          await apiClient.delete('/favorites/delete/', {
+            data: { wifiModelId: this.wifiModel.id }
           })
           this.isFavorite = false
         } else {
           // 添加收藏
-          await axios.post('http://127.0.0.1:8000/api/favorites/', {
-            userId, wifiModelId: this.wifiModel.id
+          await apiClient.post('/favorites/', {
+            wifiModelId: this.wifiModel.id
           })
           this.isFavorite = true
         }
@@ -230,7 +230,7 @@ export default {
     async loadWifiModel() {
       try {
         const id = parseInt(this.$route.params.id)
-        const response = await axios.get(`http://127.0.0.1:8000/api/wifi-models/${id}/`)
+        const response = await apiClient.get(`/wifi-models/${id}/`)
         
         // 兼容后端蛇形字段，映射为前端模板使用的驼峰字段
         const api = response.data || {}
@@ -242,7 +242,7 @@ export default {
         }
         // 获取评价
         try {
-          const reviewsResponse = await axios.get(`http://127.0.0.1:8000/api/reviews/${id}/`)
+          const reviewsResponse = await apiClient.get(`/reviews/${id}/`)
           // 兼容后端蛇形字段，并处理匿名显示
           this.modelReviews = (reviewsResponse.data || []).map(r => ({
             id: r.id,
@@ -277,8 +277,7 @@ export default {
         const id = parseInt(this.$route.params.id)
         
         // 提交评价到后端
-        await axios.post('http://127.0.0.1:8000/api/reviews/', {
-          userId: this.currentUserId,
+        await apiClient.post('/reviews/', {
           wifiModelId: id,
           rating: this.newReview.rating,
           comment: this.newReview.comment,

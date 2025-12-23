@@ -50,7 +50,7 @@
 </template>
 
 <script>
-import axios from 'axios'
+import apiClient from '../api/axios'
 
 export default {
   name: 'SearchResults',
@@ -108,7 +108,7 @@ export default {
     async loadWifiModels() {
       this.loading = true
       try {
-        const response = await axios.get('http://127.0.0.1:8000/api/wifi-models/')
+        const response = await apiClient.get('/wifi-models/')
         const list = response.data || []
         // 兼容后端蛇形字段，映射为前端使用的字段名
         this.allWifis = list.map(item => ({
