@@ -257,11 +257,7 @@ export default {
           formData.append('clear_avatar', 'true')
         }
 
-        const response = await apiClient.patch(`/users/${this.currentUserId}/`, formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data'
-          }
-        })
+        const response = await apiClient.patch(`/users/${this.currentUserId}/`, formData)
         this.userProfile = response.data
 
         if (this.currentUser && typeof this.currentUser === 'object' && 'value' in this.currentUser && this.currentUser.value) {
@@ -278,8 +274,8 @@ export default {
         }
       } catch (error) {
         console.error('更新头像失败:', error)
-        console.error('错误详情:', error.response ? error.response.data : error.message)
-        alert('更新头像失败，请检查网络连接或后端接口')
+        const errorMsg = error.response?.data?.message || error.response?.data?.detail || error.message
+        alert(`更新头像失败：${errorMsg}`)
       } finally {
         this.uploadingAvatar = false
       }
