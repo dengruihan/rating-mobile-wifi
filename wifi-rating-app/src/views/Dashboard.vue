@@ -285,7 +285,7 @@ export default {
       }
     },
     getAvatarUrl(userId) {
-      return `/api/avatar/${userId}/`
+      return userId ? `/api/avatar/${userId}/` : null
     },
     async loadUserProfile() {
       if (!this.currentUserId) return

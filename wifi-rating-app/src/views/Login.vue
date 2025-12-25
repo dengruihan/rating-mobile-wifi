@@ -37,6 +37,8 @@
 </template>
 
 <script>
+import apiClient from '../api/axios'
+
 export default {
   name: 'Login',
   inject: ['login'],
@@ -52,61 +54,33 @@ export default {
     async handleLogin() {
       this.isLoading = true
       try {
-        const response = await fetch('http://127.0.0.1:8000/api/login/', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            email: this.email,
-            password: this.password
-          })
+        const response = await apiClient.post('/login/', {
+          email: this.email,
+          password: this.password
         })
         
-        console.log('Response status:', response.status)
-        console.log('Response headers:', Object.fromEntries(response.headers.entries()))
+        const data = response.data
         
-        const text = await response.text()
-        console.log('Response text:', text)
-        
-        let data
-        try {
-          data = JSON.parse(text)
-          console.log('Parsed data:', data)
-        } catch (parseError) {
-          console.error('JSON parse error:', parseError)
-          alert('服务器响应格式错误')
-          return
-        }
-        
-        if (response.ok) {
-          if (data && data.token && data.user) {
-            // 根据"记住我"选项决定存储方式
-            const storage = this.rememberMe ? localStorage : sessionStorage
-            storage.setItem('token', data.token)
-            storage.setItem('user', JSON.stringify(data.user))
-            // 保存存储类型标志，用于后续读取
-            storage.setItem('storageType', this.rememberMe ? 'local' : 'session')
-            
-            this.login(data.user) // 调用全局登录方法，传递用户信息
-            alert(data.message || '登录成功！')
-            this.$router.push('/dashboard')
-          } else {
-            console.error('Response data missing token or user:', data)
-            alert('登录成功，但响应数据不完整')
-          }
+        if (data && data.token && data.user) {
+          const storage = this.rememberMe ? localStorage : sessionStorage
+          storage.setItem('token', data.token)
+          storage.setItem('user', JSON.stringify(data.user))
+          storage.setItem('storageType', this.rememberMe ? 'local' : 'session')
+          
+          this.login(data.user)
+          alert(data.message || '登录成功！')
+          this.$router.push('/dashboard')
         } else {
-          if (data && data.message) {
-            alert(data.message)
-          } else {
-            console.error('Error response data:', data)
-            alert('登录失败，请检查邮箱和密码')
-          }
+          console.error('Response data missing token or user:', data)
+          alert('登录成功，但响应数据不完整')
         }
       } catch (error) {
         console.error('登录失败:', error)
-        console.error('错误详情:', JSON.stringify(error))
-        alert('登录失败，请检查网络连接和控制台日志')
+        if (error.response && error.response.data && error.response.data.message) {
+          alert(error.response.data.message)
+        } else {
+          alert('登录失败，请检查邮箱和密码')
+        }
       } finally {
         this.isLoading = false
       }
