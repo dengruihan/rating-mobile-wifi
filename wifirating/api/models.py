@@ -1,10 +1,13 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+import os
+
+def get_avatar_upload_path(instance, filename):
+    return os.path.join('avatars', f'{instance.id}', filename)
 
 class User(AbstractUser):
     email = models.EmailField(unique=True)
-    # 头像：允许保存图片 URL 或 base64 data URL（便于前端直接展示）
-    avatar = models.TextField(blank=True, null=True)
+    avatar = models.CharField(max_length=255, blank=True, null=True)
     
     class Meta:
         db_table = 'users'

@@ -11,7 +11,7 @@
               <div class="avatar-wrapper">
                 <img
                   v-if="userInfo?.avatar"
-                  :src="userInfo.avatar"
+                  :src="getAvatarUrl(userInfo.id)"
                   alt="头像"
                   class="avatar-img"
                 />
@@ -240,18 +240,8 @@ export default {
         return
       }
 
-      const reader = new FileReader()
-      reader.onload = async () => {
-        const dataUrl = reader.result
-        if (typeof dataUrl !== 'string') return
-        await this.updateAvatar(dataUrl)
-        event.target.value = ''
-      }
-      reader.onerror = () => {
-        alert('读取文件失败，请重试')
-        event.target.value = ''
-      }
-      reader.readAsDataURL(file)
+      await this.updateAvatar(file)
+      event.target.value = ''
     },
     async clearAvatar() {
       await this.updateAvatar('')
@@ -260,14 +250,23 @@ export default {
       if (!this.currentUserId) return
       this.uploadingAvatar = true
       try {
-        const response = await apiClient.patch(`/users/${this.currentUserId}/`, { avatar })
+        const formData = new FormData()
+        if (avatar && typeof avatar !== 'string') {
+          formData.append('avatar', avatar)
+        } else {
+          formData.append('clear_avatar', 'true')
+        }
+
+        const response = await apiClient.patch(`/users/${this.currentUserId}/`, formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        })
         this.userProfile = response.data
 
-        // 同步更新全局 currentUser（App.vue provide 的 ref）
         if (this.currentUser && typeof this.currentUser === 'object' && 'value' in this.currentUser && this.currentUser.value) {
           this.currentUser.value.avatar = response.data.avatar
         }
-        // 同步本地缓存（用于刷新恢复）
         const saved = localStorage.getItem('user')
         if (saved) {
           try {
@@ -275,7 +274,6 @@ export default {
             u.avatar = response.data.avatar
             localStorage.setItem('user', JSON.stringify(u))
           } catch {
-            // ignore
           }
         }
       } catch (error) {
@@ -285,6 +283,9 @@ export default {
       } finally {
         this.uploadingAvatar = false
       }
+    },
+    getAvatarUrl(userId) {
+      return `/api/avatar/${userId}/`
     },
     async loadUserProfile() {
       if (!this.currentUserId) return

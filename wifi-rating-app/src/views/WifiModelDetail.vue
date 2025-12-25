@@ -76,7 +76,7 @@
           <div v-for="review in modelReviews" :key="review.id" class="review mb-3">
             <div class="review-header">
               <div class="d-flex align-items-center gap-2">
-                <img v-if="review.avatar" :src="review.avatar" alt="头像" class="review-avatar" />
+                <img v-if="review.avatar" :src="getAvatarUrl(review.user_id)" alt="头像" class="review-avatar" />
                 <i v-else class="bi bi-person-circle review-avatar-fallback"></i>
                 <h6 class="mb-0">{{ review.userName }}</h6>
               </div>
@@ -246,6 +246,7 @@ export default {
           // 兼容后端蛇形字段，并处理匿名显示
           this.modelReviews = (reviewsResponse.data || []).map(r => ({
             id: r.id,
+            userId: r.user_id,
             userName: r.display_name || r.user_name || '匿名',
             avatar: r.display_avatar || null,
             rating: r.rating,
@@ -265,6 +266,9 @@ export default {
     },
     setRating(rating) {
       this.newReview.rating = rating
+    },
+    getAvatarUrl(userId) {
+      return `/api/avatar/${userId}/`
     },
     async submitReview() {
       // 检查用户是否已登录

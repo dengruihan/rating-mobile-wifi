@@ -133,6 +133,11 @@ AUTH_USER_MODEL = 'api.User'
 
 STATIC_URL = "static/"
 
+# Media files (User uploaded files)
+# https://docs.djangoproject.com/en/6.0/howto/static-files/
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+MEDIA_URL = '/media/'
+
 # CORS settings
 # 注意：生产环境应该明确指定允许的来源，而不是允许所有来源
 # 例如：CORS_ALLOWED_ORIGINS = ['https://yourdomain.com']

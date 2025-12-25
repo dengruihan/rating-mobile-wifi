@@ -6,8 +6,12 @@ from rest_framework.authtoken.models import Token
 from django.contrib.auth import authenticate
 from django.db.models import Avg
 from django.utils import timezone
+from django.conf import settings
+from django.http import FileResponse, Http404
+import os
 from .models import User, WifiModel, Review, Favorite
 from .serializers import UserSerializer, UserProfileSerializer, WifiModelSerializer, ReviewSerializer, FavoriteSerializer
+from .utils import process_and_save_avatar, delete_old_avatar
 
 class WifiModelViewSet(viewsets.ModelViewSet):
     queryset = WifiModel.objects.all()
@@ -98,7 +102,6 @@ def get_user_profile(request, user_id):
     PATCH/PUT: 更新用户资料（当前仅支持 avatar）
     注意：用户只能查看和修改自己的资料
     """
-    # 验证用户只能操作自己的资料
     if request.user.id != user_id:
         return Response({'message': '无权访问其他用户的资料'}, status=status.HTTP_403_FORBIDDEN)
     
@@ -108,14 +111,28 @@ def get_user_profile(request, user_id):
         return Response({'message': '用户不存在'}, status=status.HTTP_404_NOT_FOUND)
 
     if request.method in ['PATCH', 'PUT']:
-        avatar = request.data.get('avatar')
-        # 允许传空字符串来清空头像
-        if avatar is None:
-            return Response({'message': '缺少 avatar 字段'}, status=status.HTTP_400_BAD_REQUEST)
-        user.avatar = avatar or None
-        user.save(update_fields=['avatar'])
-        serializer = UserProfileSerializer(user)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        avatar_file = request.FILES.get('avatar')
+        clear_avatar = request.data.get('clear_avatar')
+        
+        if clear_avatar == 'true' or clear_avatar is True:
+            delete_old_avatar(user)
+            user.avatar = None
+            user.save(update_fields=['avatar'])
+            serializer = UserProfileSerializer(user)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        
+        if avatar_file:
+            success, result = process_and_save_avatar(user, avatar_file)
+            if not success:
+                return Response({'message': result}, status=status.HTTP_400_BAD_REQUEST)
+            
+            delete_old_avatar(user)
+            user.avatar = result
+            user.save(update_fields=['avatar'])
+            serializer = UserProfileSerializer(user)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        
+        return Response({'message': '请上传头像文件或指定清除头像'}, status=status.HTTP_400_BAD_REQUEST)
 
     serializer = UserProfileSerializer(user)
     return Response(serializer.data)
@@ -333,3 +350,28 @@ def remove_favorite(request):
             return Response({'message': '取消收藏成功！'}, status=status.HTTP_200_OK)
         except Favorite.DoesNotExist:
             return Response({'message': '收藏不存在'}, status=status.HTTP_404_NOT_FOUND)
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_avatar(request, user_id):
+    """
+    获取用户头像文件
+    路径: /api/avatar/<user_id>/
+    """
+    try:
+        user = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        raise Http404('用户不存在')
+    
+    if not user.avatar:
+        raise Http404('用户未设置头像')
+    
+    file_path = os.path.join(settings.MEDIA_ROOT, user.avatar)
+    
+    if not os.path.exists(file_path):
+        raise Http404('头像文件不存在')
+    
+    try:
+        return FileResponse(open(file_path, 'rb'))
+    except Exception:
+        raise Http404('无法读取头像文件')
