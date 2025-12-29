@@ -113,6 +113,9 @@ def get_user_profile(request, user_id):
     if request.method in ['PATCH', 'PUT']:
         avatar_file = request.FILES.get('avatar')
         clear_avatar = request.data.get('clear_avatar')
+        username = request.data.get('username')
+        email = request.data.get('email')
+        password = request.data.get('password')
         
         if clear_avatar == 'true' or clear_avatar is True:
             delete_old_avatar(user)
@@ -132,7 +135,23 @@ def get_user_profile(request, user_id):
             serializer = UserProfileSerializer(user)
             return Response(serializer.data, status=status.HTTP_200_OK)
         
-        return Response({'message': '请上传头像文件或指定清除头像'}, status=status.HTTP_400_BAD_REQUEST)
+        if username or email:
+            if not password:
+                return Response({'message': '请输入密码以验证身份'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            verified_user = authenticate(request, username=user.username, password=password)
+            if not verified_user:
+                return Response({'message': '密码错误，无法修改个人信息'}, status=status.HTTP_401_UNAUTHORIZED)
+            
+            if username:
+                user.username = username
+            if email:
+                user.email = email
+            user.save(update_fields=['username', 'email'])
+            serializer = UserProfileSerializer(user)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        
+        return Response({'message': '请上传头像文件或指定要更新的字段'}, status=status.HTTP_400_BAD_REQUEST)
 
     serializer = UserProfileSerializer(user)
     return Response(serializer.data)

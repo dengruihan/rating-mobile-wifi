@@ -36,7 +36,7 @@
             <p><strong>用户名：</strong>{{ userInfo?.username }}</p>
             <p><strong>邮箱：</strong>{{ userInfo?.email }}</p>
             <p><strong>注册日期：</strong>{{ formattedRegistrationDate }}</p>
-            <button class="btn btn-primary">编辑个人信息</button>
+            <button class="btn btn-primary" @click="showEditProfileModal = true">编辑个人信息</button>
           </div>
         </div>
       </div>
@@ -149,6 +149,40 @@
         </div>
       </div>
     </div>
+
+    <div class="modal-backdrop" v-if="showEditProfileModal" @click="closeEditModal"></div>
+    <div class="modal fade" :class="{ show: showEditProfileModal }" :style="{ display: showEditProfileModal ? 'block' : 'none' }" tabindex="-1">
+      <div class="modal-dialog">
+        <div class="modal-content" :class="{ 'modal-enter': showEditProfileModal }">
+          <div class="modal-header">
+            <h5 class="modal-title">编辑个人信息</h5>
+            <button type="button" class="btn-close" @click="closeEditModal"></button>
+          </div>
+          <div class="modal-body">
+            <form @submit.prevent="saveProfile">
+              <div class="mb-3">
+                <label for="editUsername" class="form-label">用户名</label>
+                <input type="text" class="form-control" id="editUsername" v-model="editForm.username" required>
+              </div>
+              <div class="mb-3">
+                <label for="editEmail" class="form-label">邮箱</label>
+                <input type="email" class="form-control" id="editEmail" v-model="editForm.email" required>
+              </div>
+              <div class="mb-3">
+                <label for="editPassword" class="form-label">密码验证</label>
+                <input type="password" class="form-control" id="editPassword" v-model="editForm.password" required placeholder="请输入当前密码以验证身份">
+              </div>
+              <div class="modal-footer px-0 pb-0">
+                <button type="button" class="btn btn-secondary" @click="closeEditModal">取消</button>
+                <button type="submit" class="btn btn-primary" :disabled="savingProfile">
+                  {{ savingProfile ? '保存中...' : '保存' }}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -164,7 +198,14 @@ export default {
       favorites: [],
       userProfile: null,
       uploadingAvatar: false,
-      submissions: []
+      submissions: [],
+      showEditProfileModal: false,
+      savingProfile: false,
+      editForm: {
+        username: '',
+        email: '',
+        password: ''
+      }
     }
   },
   mounted() {
@@ -197,12 +238,21 @@ export default {
     }
   },
   watch: {
-    // 解决“刷新/直达 dashboard 时 App.vue 还没从 localStorage 恢复 currentUser”
+    // 解决"刷新/直达 dashboard 时 App.vue 还没从 localStorage 恢复 currentUser"
     currentUserId: {
       handler() {
         this.loadUserData()
         this.loadUserProfile()
         this.loadUserSubmissions()
+      },
+      immediate: true
+    },
+    userProfile: {
+      handler(newVal) {
+        if (newVal) {
+          this.editForm.username = newVal.username || ''
+          this.editForm.email = newVal.email || ''
+        }
       },
       immediate: true
     }
@@ -282,6 +332,49 @@ export default {
     },
     getAvatarUrl(userId) {
       return userId ? `/api/avatar/${userId}/` : null
+    },
+    closeEditModal() {
+      this.showEditProfileModal = false
+      this.editForm.password = ''
+    },
+    async saveProfile() {
+      if (!this.currentUserId) return
+      if (!this.editForm.password) {
+        alert('请输入密码以验证身份')
+        return
+      }
+      this.savingProfile = true
+      try {
+        const response = await apiClient.patch(`/users/${this.currentUserId}/`, {
+          username: this.editForm.username,
+          email: this.editForm.email,
+          password: this.editForm.password
+        })
+        this.userProfile = response.data
+
+        if (this.currentUser && typeof this.currentUser === 'object' && 'value' in this.currentUser && this.currentUser.value) {
+          this.currentUser.value.username = response.data.username
+          this.currentUser.value.email = response.data.email
+        }
+        const saved = localStorage.getItem('user')
+        if (saved) {
+          try {
+            const u = JSON.parse(saved)
+            u.username = response.data.username
+            u.email = response.data.email
+            localStorage.setItem('user', JSON.stringify(u))
+          } catch {
+          }
+        }
+        this.closeEditModal()
+        alert('个人信息更新成功')
+      } catch (error) {
+        console.error('更新个人信息失败:', error)
+        const errorMsg = error.response?.data?.message || error.response?.data?.detail || error.message
+        alert(`更新个人信息失败：${errorMsg}`)
+      } finally {
+        this.savingProfile = false
+      }
     },
     async loadUserProfile() {
       if (!this.currentUserId) return
@@ -548,5 +641,39 @@ export default {
   font-size: 0.8rem;
   color: #999;
   margin-bottom: 0;
+}
+
+.modal {
+  transition: opacity 0.3s ease;
+}
+
+.modal.fade {
+  opacity: 0;
+}
+
+.modal.fade.show {
+  opacity: 1;
+}
+
+.modal-content {
+  transition: transform 0.3s ease, opacity 0.3s ease;
+  transform: scale(0.9);
+  opacity: 0;
+}
+
+.modal-content.modal-enter {
+  transform: scale(1);
+  opacity: 1;
+}
+
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1040;
+  transition: opacity 0.3s ease;
 }
 </style>
