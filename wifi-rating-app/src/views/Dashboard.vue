@@ -37,6 +37,7 @@
             <p><strong>邮箱：</strong>{{ userInfo?.email }}</p>
             <p><strong>注册日期：</strong>{{ formattedRegistrationDate }}</p>
             <button class="btn btn-primary" @click="showEditProfileModal = true">编辑个人信息</button>
+            <button class="btn btn-warning" @click="showChangePasswordModal = true">修改密码</button>
           </div>
         </div>
       </div>
@@ -183,6 +184,94 @@
         </div>
       </div>
     </div>
+
+    <div class="modal-backdrop" v-if="showChangePasswordModal" @click="closeChangePasswordModal"></div>
+    <div class="modal fade" :class="{ show: showChangePasswordModal }" :style="{ display: showChangePasswordModal ? 'block' : 'none' }" tabindex="-1">
+      <div class="modal-dialog">
+        <div class="modal-content" :class="{ 'modal-enter': showChangePasswordModal }">
+          <div class="modal-header">
+            <h5 class="modal-title">修改密码</h5>
+            <button type="button" class="btn-close" @click="closeChangePasswordModal"></button>
+          </div>
+          <div class="modal-body">
+            <div v-if="changePasswordStep === 1">
+              <form @submit.prevent="sendVerificationCode">
+                <div class="mb-3">
+                  <label for="currentPassword" class="form-label">当前密码</label>
+                  <input type="password" class="form-control" id="currentPassword" v-model="passwordForm.currentPassword" required placeholder="请输入当前密码">
+                </div>
+                <div class="mb-3">
+                  <label for="newPassword" class="form-label">新密码</label>
+                  <input type="password" class="form-control" id="newPassword" v-model="passwordForm.newPassword" required placeholder="请输入新密码" @input="checkPasswordStrength">
+                  <div class="password-strength mt-2">
+                    <div class="progress" style="height: 5px;">
+                      <div class="progress-bar" :class="passwordStrengthClass" :style="{ width: passwordStrengthWidth }"></div>
+                    </div>
+                    <small class="text-muted">{{ passwordStrengthMessage }}</small>
+                  </div>
+                </div>
+                <div class="mb-3">
+                  <label for="confirmPassword" class="form-label">确认新密码</label>
+                  <input type="password" class="form-control" id="confirmPassword" v-model="passwordForm.confirmPassword" required placeholder="请再次输入新密码">
+                  <small v-if="passwordForm.newPassword && passwordForm.confirmPassword && passwordForm.newPassword !== passwordForm.confirmPassword" class="text-danger">
+                    两次输入的密码不一致
+                  </small>
+                </div>
+                <div class="password-requirements mb-3">
+                  <small class="text-muted">密码要求：</small>
+                  <ul class="small mb-0">
+                    <li :class="{ 'text-success': passwordForm.newPassword.length >= 8, 'text-muted': passwordForm.newPassword.length < 8 }">
+                      长度至少8位
+                    </li>
+                    <li :class="{ 'text-success': hasUpperCase, 'text-muted': !hasUpperCase }">
+                      包含大写字母
+                    </li>
+                    <li :class="{ 'text-success': hasLowerCase, 'text-muted': !hasLowerCase }">
+                      包含小写字母
+                    </li>
+                    <li :class="{ 'text-success': hasDigit, 'text-muted': !hasDigit }">
+                      包含数字
+                    </li>
+                    <li :class="{ 'text-success': hasSpecialChar, 'text-muted': !hasSpecialChar }">
+                      包含特殊符号
+                    </li>
+                  </ul>
+                </div>
+                <div class="modal-footer px-0 pb-0">
+                  <button type="button" class="btn btn-secondary" @click="closeChangePasswordModal">取消</button>
+                  <button type="submit" class="btn btn-primary" :disabled="sendingCode || !isPasswordValid">
+                    {{ sendingCode ? '发送中...' : '发送验证码' }}
+                  </button>
+                </div>
+              </form>
+            </div>
+            <div v-else-if="changePasswordStep === 2">
+              <form @submit.prevent="changePassword">
+                <div class="mb-3">
+                  <label class="form-label">验证码已发送至您的邮箱</label>
+                  <p class="text-muted small">请查收邮件并输入6位验证码</p>
+                </div>
+                <div class="mb-3">
+                  <label for="verificationCode" class="form-label">验证码</label>
+                  <input type="text" class="form-control" id="verificationCode" v-model="passwordForm.verificationCode" required placeholder="请输入6位验证码" maxlength="6">
+                </div>
+                <div class="mb-3">
+                  <button type="button" class="btn btn-link p-0" @click="resendCode" :disabled="resendCountdown > 0">
+                    {{ resendCountdown > 0 ? `${resendCountdown}秒后可重新发送` : '重新发送验证码' }}
+                  </button>
+                </div>
+                <div class="modal-footer px-0 pb-0">
+                  <button type="button" class="btn btn-secondary" @click="closeChangePasswordModal">取消</button>
+                  <button type="submit" class="btn btn-primary" :disabled="changingPassword">
+                    {{ changingPassword ? '修改中...' : '确认修改' }}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -205,7 +294,19 @@ export default {
         username: '',
         email: '',
         password: ''
-      }
+      },
+      showChangePasswordModal: false,
+      changePasswordStep: 1,
+      sendingCode: false,
+      changingPassword: false,
+      resendCountdown: 0,
+      passwordForm: {
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: '',
+        verificationCode: ''
+      },
+      passwordStrength: 0
     }
   },
   mounted() {
@@ -213,7 +314,6 @@ export default {
   },
   computed: {
     currentUserId() {
-      // currentUser 在 App.vue 中是 provide 的 ref；这里同时兼容误传普通对象
       if (this.currentUser && typeof this.currentUser === 'object' && 'value' in this.currentUser) {
         return this.currentUser.value?.id
       }
@@ -226,7 +326,6 @@ export default {
       return this.currentUser
     },
     userInfo() {
-      // 优先使用后端拉取的完整资料（含 date_joined），否则退回到本地保存的 user
       return this.userProfile || this.injectedUser
     },
     formattedRegistrationDate() {
@@ -235,6 +334,41 @@ export default {
       const d = new Date(raw)
       if (Number.isNaN(d.getTime())) return String(raw)
       return d.toLocaleString()
+    },
+    hasUpperCase() {
+      return /[A-Z]/.test(this.passwordForm.newPassword)
+    },
+    hasLowerCase() {
+      return /[a-z]/.test(this.passwordForm.newPassword)
+    },
+    hasDigit() {
+      return /\d/.test(this.passwordForm.newPassword)
+    },
+    hasSpecialChar() {
+      return /[!@#$%^&*(),.?":{}|<>]/.test(this.passwordForm.newPassword)
+    },
+    criteriaCount() {
+      return [this.hasUpperCase, this.hasLowerCase, this.hasDigit, this.hasSpecialChar].filter(Boolean).length
+    },
+    isPasswordValid() {
+      return this.passwordForm.newPassword.length >= 8 &&
+             this.passwordForm.newPassword === this.passwordForm.confirmPassword &&
+             this.criteriaCount >= 3
+    },
+    passwordStrengthClass() {
+      if (this.passwordStrength === 0) return 'bg-danger'
+      if (this.passwordStrength === 1) return 'bg-warning'
+      return 'bg-success'
+    },
+    passwordStrengthWidth() {
+      if (this.passwordStrength === 0) return '33%'
+      if (this.passwordStrength === 1) return '66%'
+      return '100%'
+    },
+    passwordStrengthMessage() {
+      if (this.passwordStrength === 0) return '密码强度：弱'
+      if (this.passwordStrength === 1) return '密码强度：中'
+      return '密码强度：强'
     }
   },
   watch: {
@@ -336,6 +470,121 @@ export default {
     closeEditModal() {
       this.showEditProfileModal = false
       this.editForm.password = ''
+    },
+    closeChangePasswordModal() {
+      this.showChangePasswordModal = false
+      this.changePasswordStep = 1
+      this.passwordForm = {
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: '',
+        verificationCode: ''
+      }
+      this.passwordStrength = 0
+      this.resendCountdown = 0
+      if (this.resendTimer) {
+        clearInterval(this.resendTimer)
+        this.resendTimer = null
+      }
+    },
+    checkPasswordStrength() {
+      const password = this.passwordForm.newPassword
+      if (password.length < 8) {
+        this.passwordStrength = 0
+        return
+      }
+      
+      const hasUpper = /[A-Z]/.test(password)
+      const hasLower = /[a-z]/.test(password)
+      const hasDigit = /\d/.test(password)
+      const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password)
+      
+      const criteriaCount = [hasUpper, hasLower, hasDigit, hasSpecial].filter(Boolean).length
+      
+      if (criteriaCount < 3) {
+        this.passwordStrength = 0
+      } else if (criteriaCount === 3) {
+        this.passwordStrength = 1
+      } else {
+        this.passwordStrength = 2
+      }
+    },
+    async sendVerificationCode() {
+      if (!this.isPasswordValid) {
+        alert('请确保密码符合要求')
+        return
+      }
+      
+      this.sendingCode = true
+      try {
+        const response = await apiClient.post('/send-password-change-code/')
+        alert(response.data.message || '验证码已发送至您的邮箱')
+        this.changePasswordStep = 2
+        this.startResendCountdown()
+      } catch (error) {
+        console.error('发送验证码失败:', error)
+        const errorMsg = error.response?.data?.message || error.response?.data?.detail || error.message
+        alert(`发送验证码失败：${errorMsg}`)
+      } finally {
+        this.sendingCode = false
+      }
+    },
+    startResendCountdown() {
+      this.resendCountdown = 60
+      this.resendTimer = setInterval(() => {
+        this.resendCountdown--
+        if (this.resendCountdown <= 0) {
+          clearInterval(this.resendTimer)
+          this.resendTimer = null
+        }
+      }, 1000)
+    },
+    async resendCode() {
+      if (this.resendCountdown > 0) return
+      
+      this.sendingCode = true
+      try {
+        const response = await apiClient.post('/send-password-change-code/')
+        alert(response.data.message || '验证码已重新发送至您的邮箱')
+        this.startResendCountdown()
+      } catch (error) {
+        console.error('重新发送验证码失败:', error)
+        const errorMsg = error.response?.data?.message || error.response?.data?.detail || error.message
+        alert(`重新发送验证码失败：${errorMsg}`)
+      } finally {
+        this.sendingCode = false
+      }
+    },
+    async changePassword() {
+      if (!this.passwordForm.verificationCode) {
+        alert('请输入验证码')
+        return
+      }
+      
+      this.changingPassword = true
+      try {
+        const response = await apiClient.post('/change-password/', {
+          current_password: this.passwordForm.currentPassword,
+          new_password: this.passwordForm.newPassword,
+          confirm_password: this.passwordForm.confirmPassword,
+          verification_code: this.passwordForm.verificationCode
+        })
+        
+        alert(response.data.message || '密码修改成功，请使用新密码重新登录')
+        
+        this.closeChangePasswordModal()
+        
+        localStorage.removeItem('token')
+        localStorage.removeItem('user')
+        this.$router.push('/login')
+        
+      } catch (error) {
+        console.error('修改密码失败:', error)
+        const errorMsg = error.response?.data?.message || error.response?.data?.detail || error.message
+        alert(`修改密码失败：${errorMsg}`)
+      } finally {
+        this.changingPassword = false
+      }
     },
     async saveProfile() {
       if (!this.currentUserId) return

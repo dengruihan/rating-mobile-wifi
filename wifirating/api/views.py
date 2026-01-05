@@ -9,9 +9,12 @@ from django.utils import timezone
 from django.conf import settings
 from django.http import FileResponse, Http404
 import os
+import logging
 from .models import User, WifiModel, Review, Favorite
 from .serializers import UserSerializer, UserProfileSerializer, WifiModelSerializer, ReviewSerializer, FavoriteSerializer
-from .utils import process_and_save_avatar, delete_old_avatar
+from .utils import process_and_save_avatar, delete_old_avatar, validate_password_strength, send_verification_email, check_verification_code_limit, create_verification_code, verify_code
+
+logger = logging.getLogger(__name__)
 
 class WifiModelViewSet(viewsets.ModelViewSet):
     queryset = WifiModel.objects.all()
@@ -394,3 +397,127 @@ def get_avatar(request, user_id):
         return FileResponse(open(file_path, 'rb'))
     except Exception:
         raise Http404('无法读取头像文件')
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def send_password_change_code(request):
+    """
+    发送密码修改验证码
+    POST /api/send-password-change-code/
+    """
+    user = request.user
+    
+    can_send, remaining_attempts, error_msg = check_verification_code_limit(user, 'password_change')
+    
+    if not can_send:
+        logger.warning(f'用户 {user.id} ({user.email}) 发送验证码超过限制')
+        return Response({'message': error_msg}, status=status.HTTP_429_TOO_MANY_REQUESTS)
+    
+    code, error_msg = create_verification_code(user, user.email, 'password_change')
+    
+    if error_msg:
+        logger.error(f'创建验证码失败: {error_msg}')
+        return Response({'message': error_msg}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    success, error_msg = send_verification_email(user, code, 'password_change')
+    
+    if not success:
+        logger.error(f'发送验证码邮件失败: {error_msg}')
+        return Response({'message': error_msg}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    client_ip = request.META.get('REMOTE_ADDR', 'unknown')
+    logger.info(f'用户 {user.id} ({user.email}) 请求密码修改验证码，IP: {client_ip}')
+    
+    return Response({
+        'message': '验证码已发送至您的邮箱，请查收',
+        'remaining_attempts': remaining_attempts - 1
+    }, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def verify_password_change_code(request):
+    """
+    验证密码修改验证码
+    POST /api/verify-password-change-code/
+    请求体: { "code": "123456" }
+    """
+    user = request.user
+    code = request.data.get('code')
+    
+    if not code:
+        return Response({'message': '请输入验证码'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    is_valid, error_msg = verify_code(user, code, 'password_change')
+    
+    if not is_valid:
+        logger.warning(f'用户 {user.id} 验证码验证失败: {error_msg}')
+        return Response({'message': error_msg}, status=status.HTTP_400_BAD_REQUEST)
+    
+    client_ip = request.META.get('REMOTE_ADDR', 'unknown')
+    logger.info(f'用户 {user.id} 验证码验证成功，IP: {client_ip}')
+    
+    return Response({'message': '验证码验证成功'}, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def change_password(request):
+    """
+    修改密码
+    POST /api/change-password/
+    请求体: {
+      "current_password": "旧密码",
+      "new_password": "新密码",
+      "confirm_password": "确认新密码",
+      "verification_code": "验证码"
+    }
+    """
+    user = request.user
+    current_password = request.data.get('current_password')
+    new_password = request.data.get('new_password')
+    confirm_password = request.data.get('confirm_password')
+    verification_code = request.data.get('verification_code')
+    
+    if not current_password or not new_password or not confirm_password:
+        return Response({'message': '请填写所有必填字段'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    if new_password != confirm_password:
+        return Response({'message': '两次输入的新密码不一致'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    is_valid, error_msg, strength_level = validate_password_strength(new_password)
+    
+    if not is_valid:
+        return Response({'message': error_msg}, status=status.HTTP_400_BAD_REQUEST)
+    
+    verified_user = authenticate(request, username=user.username, password=current_password)
+    
+    if not verified_user:
+        logger.warning(f'用户 {user.id} 修改密码时当前密码验证失败')
+        return Response({'message': '当前密码错误'}, status=status.HTTP_401_UNAUTHORIZED)
+    
+    if not verification_code:
+        return Response({'message': '请输入验证码'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    is_valid, error_msg = verify_code(user, verification_code, 'password_change')
+    
+    if not is_valid:
+        logger.warning(f'用户 {user.id} 修改密码时验证码验证失败: {error_msg}')
+        return Response({'message': error_msg}, status=status.HTTP_400_BAD_REQUEST)
+    
+    try:
+        user.set_password(new_password)
+        user.save()
+        
+        client_ip = request.META.get('REMOTE_ADDR', 'unknown')
+        logger.info(f'用户 {user.id} ({user.email}) 成功修改密码，IP: {client_ip}')
+        
+        return Response({
+            'message': '密码修改成功，请使用新密码重新登录',
+            'strength_level': strength_level
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        logger.error(f'用户 {user.id} 修改密码失败: {str(e)}')
+        return Response({'message': '密码修改失败，请稍后重试'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

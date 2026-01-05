@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import WifiModelViewSet, ReviewViewSet, FavoriteViewSet, register, login, get_user_profile, submit_wifi_model, get_user_wifi_model_submissions, get_wifi_model_reviews, get_user_favorites, get_user_reviews, add_review, add_favorite, remove_favorite, get_avatar
+from .views import WifiModelViewSet, ReviewViewSet, FavoriteViewSet, register, login, get_user_profile, submit_wifi_model, get_user_wifi_model_submissions, get_wifi_model_reviews, get_user_favorites, get_user_reviews, add_review, add_favorite, remove_favorite, get_avatar, send_password_change_code, verify_password_change_code, change_password
 
 router = DefaultRouter()
 router.register(r'wifi-models', WifiModelViewSet)
@@ -20,5 +20,8 @@ urlpatterns = [
     path('user-reviews/<int:user_id>/', get_user_reviews, name='get_user_reviews'),
     path('favorites/', add_favorite, name='add_favorite'),
     path('favorites/delete/', remove_favorite, name='remove_favorite'),
+    path('send-password-change-code/', send_password_change_code, name='send_password_change_code'),
+    path('verify-password-change-code/', verify_password_change_code, name='verify_password_change_code'),
+    path('change-password/', change_password, name='change_password'),
     path('', include(router.urls)),
 ]

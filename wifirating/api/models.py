@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from django.utils import timezone
 import os
 
 def get_avatar_upload_path(instance, filename):
@@ -84,3 +85,16 @@ class Favorite(models.Model):
     class Meta:
         db_table = 'favorites'
         unique_together = ('user', 'wifi_model')
+
+class VerificationCode(models.Model):
+    user = models.ForeignKey(User, related_name='verification_codes', on_delete=models.CASCADE)
+    code = models.CharField(max_length=6)
+    email = models.EmailField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    is_used = models.BooleanField(default=False)
+    purpose = models.CharField(max_length=20, default='password_change')
+    
+    class Meta:
+        db_table = 'verification_codes'
+        ordering = ['-created_at']
