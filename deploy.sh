@@ -34,7 +34,7 @@ echo "======================================"
 echo "  启动前端服务 (Vue)"
 echo "======================================"
 cd wifi-rating-app
-npm run dev -- --host 0.0.0.0 --port 5173 > ../logs/frontend.log 2>&1 &
+npm run dev -- --host 0.0.0.0 --port 5179 > ../logs/frontend.log 2>&1 &
 FRONTEND_PID=$!
 echo "前端服务已启动，PID: $FRONTEND_PID"
 echo "前端日志: logs/frontend.log"
